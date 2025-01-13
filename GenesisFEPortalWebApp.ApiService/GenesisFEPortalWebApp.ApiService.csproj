@@ -7,11 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GenesisFEPortalWebApp.BL\GenesisFEPortalWebApp.BL.csproj" />
+    <ProjectReference Include="..\GenesisFEPortalWebApp.Models\GenesisFEPortalWebApp.Models.csproj" />
     <ProjectReference Include="..\GenesisFEPortalWebApp.ServiceDefaults\GenesisFEPortalWebApp.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
   </ItemGroup>
 
 </Project>
