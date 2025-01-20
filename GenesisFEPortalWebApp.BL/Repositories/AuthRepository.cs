@@ -19,6 +19,7 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         Task CreateUserAsync(UserModel user);
         Task CreateRefreshTokenAsync(RefreshTokenModel refreshToken);
         Task UpdateRefreshTokenAsync(RefreshTokenModel refreshToken);
+        Task<bool> EmailExistsInTenantAsync(string email, long tenantId);
         Task SaveChangesAsync();
     }
 
@@ -88,6 +89,12 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> EmailExistsInTenantAsync(string email, long tenantId)
+        {
+            return await _context.Users
+                .AnyAsync(u => u.Email == email && u.TenantId == tenantId);
         }
     }
 }

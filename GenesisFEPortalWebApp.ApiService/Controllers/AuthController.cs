@@ -71,7 +71,7 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
         }
 
         [HttpPost("register")]
-        [AllowAnonymous]
+        [Authorize(Roles = "TenantAdmin")]
         public async Task<ActionResult<BaseResponseModel>> Register([FromBody] RegisterUserDto model)
         {
             try

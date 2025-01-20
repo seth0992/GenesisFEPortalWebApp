@@ -72,11 +72,7 @@ CREATE TABLE Security.Users (
     FOREIGN KEY (TenantId) REFERENCES Core.Tenants(ID),
     FOREIGN KEY (RoleId) REFERENCES Security.Roles(ID)
 );
-ALTER TABLE Security.Users
-ADD 
-    LastPasswordChangeDate DATETIME NULL,
-    LastSuccessfulLogin DATETIME NULL,
-    SecurityStamp NVARCHAR(MAX) NULL;
+
 CREATE TABLE Security.RefreshTokens (
     ID BIGINT IDENTITY(1,1) PRIMARY KEY,
     UserID BIGINT NOT NULL,
@@ -92,6 +88,19 @@ CREATE TABLE Security.RefreshTokens (
     FOREIGN KEY (UserID) REFERENCES Security.Users(ID)
 );
 
+-- Crear tabla para logs de seguridad
+CREATE TABLE Security.SecurityLogs
+(
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    EventType NVARCHAR(50) NOT NULL,
+    Email NVARCHAR(255) NOT NULL,
+    Success BIT NOT NULL,
+    Details NVARCHAR(MAX),
+    IpAddress NVARCHAR(50),
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL
+);
 
 /************************************/
 /* Tablas de Catálogos             */

@@ -30,6 +30,7 @@ namespace GenesisFEPortalWebApp.BL.Services
 
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
+        private readonly ITenantRepository _tenantRepository;
         private readonly ITenantService _tenantService;
         private readonly IPasswordHasher _passwordHasher;
         private readonly ITokenService _tokenService;
@@ -38,7 +39,8 @@ namespace GenesisFEPortalWebApp.BL.Services
 
         public AuthService(
             IAuthRepository authRepository,
-            IConfiguration configuration,
+            IConfiguration configuration, 
+            ITenantRepository tenantRepository,
             ITenantService tenantService,
             IPasswordHasher passwordHasher,
             ITokenService tokenService,
@@ -47,6 +49,7 @@ namespace GenesisFEPortalWebApp.BL.Services
         {
             _authRepository = authRepository;
             _configuration = configuration;
+            _tenantRepository = tenantRepository;
             _tenantService = tenantService;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
@@ -136,37 +139,70 @@ namespace GenesisFEPortalWebApp.BL.Services
 
             return (user, token, refreshToken);
         }
-               
+
         public async Task<(bool Success, string? ErrorMessage)> RegisterUserAsync(RegisterUserDto model)
         {
-            if (await _authRepository.EmailExistsAsync(model.Email))
+            try
             {
-                return (false, "El email ya está registrado");
+                // Validar que existe un tenant activo
+                var currentTenantId = _tenantService.GetCurrentTenantId();
+                if (currentTenantId == 0)
+                {
+                    return (false, "No hay un tenant válido en la sesión actual");
+                }
+
+                // Verificar si el tenant está activo
+                var tenant = await _tenantRepository.GetByIdAsync(currentTenantId);
+                if (tenant == null || !tenant.IsActive)
+                {
+                    return (false, "El tenant no está activo o no existe");
+                }
+
+                // Verificar si el email ya existe en el contexto del tenant actual
+                if (await _authRepository.EmailExistsInTenantAsync(model.Email, currentTenantId))
+                {
+                    return (false, "El email ya está registrado en este tenant");
+                }
+
+                // Obtener el rol por defecto para el tenant
+                var defaultRole = await _authRepository.GetRoleByNameAsync("User");
+                if (defaultRole == null)
+                {
+                    return (false, "Error al asignar el rol");
+                }
+
+                var user = new UserModel
+                {
+                    Email = model.Email,
+                    Username = model.Email,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    PasswordHash = _passwordHasher.HashPassword(model.Password),
+                    RoleId = defaultRole.ID,
+                    TenantId = currentTenantId,
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    LastPasswordChangeDate = DateTime.UtcNow,
+                    SecurityStamp = Guid.NewGuid().ToString()
+                };
+
+                await _authRepository.CreateUserAsync(user);
+                await _authRepository.SaveChangesAsync();
+
+                // Registrar en auditoría
+                await _authAuditLogger.LogLoginAttempt(
+                    user.Email,
+                    true,
+                    $"Usuario registrado en tenant {tenant.Name}");
+
+                return (true, null);
             }
-
-            var defaultRole = await _authRepository.GetRoleByNameAsync("User");
-            if (defaultRole == null)
+            catch (Exception ex)
             {
-                return (false, "Error al asignar el rol");
+                _logger.LogError(ex, "Error registrando usuario {Email}", model.Email);
+                return (false, "Error interno del servidor");
             }
-
-            var user = new UserModel
-            {
-                Email = model.Email,
-                Username = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                PasswordHash = _passwordHasher.HashPassword(model.Password),
-                RoleId = defaultRole.ID,
-                TenantId = _tenantService.GetCurrentTenantId(),
-                EmailConfirmed = true,
-                IsActive = true
-            };
-
-            await _authRepository.CreateUserAsync(user);
-            await _authRepository.SaveChangesAsync();
-
-            return (true, null);
         }
 
         public async Task<(string? Token, string? RefreshToken)> RefreshTokenAsync(string token, string refreshToken)
