@@ -3,13 +3,13 @@
   <Items>
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
-        <ConnectionNode Name="KRONO\SQLEXPRESS:seth">
-          <Created>2025-01-12T16:03:46.24748-06:00</Created>
+        <ConnectionNode Name="KRONOS\SQLEXPRESS:seth">
+          <Created>2025-01-17T16:55:14.203375-06:00</Created>
           <Type>SQL</Type>
-          <Server>KRONO\SQLEXPRESS</Server>
+          <Server>KRONOS\SQLEXPRESS</Server>
           <UserName>seth</UserName>
           <Authentication>SQL</Authentication>
-          <InitialDB>master</InitialDB>
+          <InitialDB />
           <LoginTimeout>30</LoginTimeout>
           <TrustServerCertificate>True</TrustServerCertificate>
           <HostNameInServerCertificate />
@@ -23,14 +23,14 @@
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
         <FileNode Name="DatosIniciales.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONO\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>KRONO\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName>seth</AssociatedConnUserName>
           <FullPath>DatosIniciales.sql</FullPath>
         </FileNode>
         <FileNode Name="Schemas.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONO\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>KRONO\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName>seth</AssociatedConnUserName>
           <FullPath>Schemas.sql</FullPath>
         </FileNode>

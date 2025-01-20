@@ -9,9 +9,9 @@ namespace GenesisFEPortalWebApp.Models.Entities.Common
     public interface IAuditableEntity
     {
         DateTime CreatedAt { get; set; }
-        long? CreatedBy { get; set; }
+        //long? CreatedBy { get; set; }
         DateTime? UpdatedAt { get; set; }
-        long? UpdatedBy { get; set; }
+        //long? UpdatedBy { get; set; }
     }
 
 }

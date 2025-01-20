@@ -10,6 +10,7 @@ using GenesisFEPortalWebApp.BL.Services;
 using GenesisFEPortalWebApp.BL.Cache.Monitors;
 using GenesisFEPortalWebApp.BL.Cache;
 using GenesisFEPortalWebApp.BL.Cache.Configuration;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,8 +65,22 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 
-builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddHttpContextAccessor();
+
+// Repositories
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+
+// Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITenantRegistrationService, TenantRegistrationService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+
+// Other services
+builder.Services.AddScoped<ITenantService, TenantService>();
+
+
 // Agregar estas líneas después de builder.Services.AddControllers
 
 // Configuración del caché
@@ -77,6 +92,28 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ICacheService, MemoryCacheService>();
 builder.Services.AddScoped<CatalogChangeMonitor>();
 
+// JWT Configuration
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = false;
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["JWT:ValidAudience"],
+        ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
+        ClockSkew = TimeSpan.Zero,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]!))
+    };
+});
+
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -86,6 +123,10 @@ app.MapControllers(); // Agregado
 
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
+
+// Add authentication middleware to pipeline
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
