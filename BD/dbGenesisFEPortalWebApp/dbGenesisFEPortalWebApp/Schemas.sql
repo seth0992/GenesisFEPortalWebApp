@@ -80,6 +80,8 @@ CREATE TABLE Security.RefreshTokens (
     RevokedAt DATETIME,
     RevokedByIp NVARCHAR(50),
     ReplacedByToken NVARCHAR(MAX),
+	IsActive BIT DEFAULT 1,           -- Agregar esta columna
+    UpdatedAt DATETIME,               -- Agregar esta columna
     FOREIGN KEY (UserID) REFERENCES Security.Users(ID)
 );
 
