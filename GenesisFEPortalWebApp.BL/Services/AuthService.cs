@@ -1,8 +1,10 @@
 ﻿using GenesisFEPortalWebApp.BL.Repositories;
 using GenesisFEPortalWebApp.Models.Entities.Security;
+using GenesisFEPortalWebApp.Models.Exceptions;
 using GenesisFEPortalWebApp.Models.Models.Auth;
 using GenesisFEPortalWebApp.Models.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,41 +25,101 @@ namespace GenesisFEPortalWebApp.BL.Services
 
     public class AuthService : IAuthService
     {
+        private const int MaxFailedAttempts = 5;
+        private readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
         private readonly ITenantService _tenantService;
         private readonly IPasswordHasher _passwordHasher;
         private readonly ITokenService _tokenService;
+        private readonly IAuthAuditLogger _authAuditLogger;
+        private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             IAuthRepository authRepository,
             IConfiguration configuration,
             ITenantService tenantService,
             IPasswordHasher passwordHasher,
-            ITokenService tokenService)
+            ITokenService tokenService,
+            IAuthAuditLogger authAuditLogger,
+            ILogger<AuthService> logger)
         {
             _authRepository = authRepository;
             _configuration = configuration;
             _tenantService = tenantService;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
+            _authAuditLogger = authAuditLogger;
+            _logger = logger;
         }
+
 
         public async Task<(UserModel? User, string? Token, string? RefreshToken)> LoginAsync(LoginDto model)
         {
-            var user = await _authRepository.GetUserByEmailAsync(model.Email);
-
-            if (user == null || !_passwordHasher.VerifyPassword(model.Password, user.PasswordHash))
+            try
             {
-                return (null, null, null);
-            }
+                var user = await _authRepository.GetUserByEmailAsync(model.Email);
 
-            // Verificar si el usuario y el tenant están activos
-            if (!user.IsActive || !user.Tenant.IsActive)
+                if (user == null || !user.IsActive || !user.Tenant.IsActive)
+                {
+                    await _authAuditLogger.LogLoginAttempt(model.Email, false, "Usuario inactivo o no encontrado");
+                    return (null, null, null);
+                }
+
+                if (IsAccountLocked(user))
+                {
+                    await _authAuditLogger.LogLoginAttempt(model.Email, false, "Cuenta bloqueada");
+                    throw new AccountLockedException("La cuenta está temporalmente bloqueada por múltiples intentos fallidos");
+                }
+
+                if (!_passwordHasher.VerifyPassword(model.Password, user.PasswordHash))
+                {
+                    await HandleFailedLogin(user);
+                    return (null, null, null);
+                }
+
+                await HandleSuccessfulLogin(user);
+                return await GenerateAuthTokens(user);
+            }
+            catch (Exception ex)
             {
-                return (null, null, null);
+                _logger.LogError(ex, "Error durante el proceso de login para {Email}", model.Email);
+                throw;
             }
+        }
 
+        private bool IsAccountLocked(UserModel user)
+        {
+            return user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.UtcNow;
+        }
+
+        private async Task HandleFailedLogin(UserModel user)
+        {
+            user.AccessFailedCount++;
+            if (user.AccessFailedCount >= MaxFailedAttempts)
+            {
+                user.LockoutEnd = DateTime.UtcNow.Add(LockoutDuration);
+                await _authAuditLogger.LogLoginAttempt(user.Email, false, "Cuenta bloqueada por múltiples intentos");
+                _logger.LogWarning("Cuenta bloqueada por múltiples intentos fallidos: {Email}", user.Email);
+            }
+            await _authRepository.SaveChangesAsync();
+        }
+
+        private async Task HandleSuccessfulLogin(UserModel user)
+        {
+            user.AccessFailedCount = 0;
+            user.LockoutEnd = null;
+            user.LastLoginDate = DateTime.UtcNow;
+            user.LastSuccessfulLogin = DateTime.UtcNow;
+            user.SecurityStamp = Guid.NewGuid().ToString();
+
+            await _authRepository.SaveChangesAsync();
+            await _authAuditLogger.LogLoginAttempt(user.Email, true, "Login exitoso");
+        }
+
+        private async Task<(UserModel User, string Token, string RefreshToken)> GenerateAuthTokens(UserModel user)
+        {
             var token = _tokenService.GenerateJwtToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
@@ -74,7 +136,7 @@ namespace GenesisFEPortalWebApp.BL.Services
 
             return (user, token, refreshToken);
         }
-
+               
         public async Task<(bool Success, string? ErrorMessage)> RegisterUserAsync(RegisterUserDto model)
         {
             if (await _authRepository.EmailExistsAsync(model.Email))

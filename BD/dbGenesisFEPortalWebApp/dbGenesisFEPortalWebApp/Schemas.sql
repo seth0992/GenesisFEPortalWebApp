@@ -66,10 +66,17 @@ CREATE TABLE Security.Users (
     IsActive BIT DEFAULT 1,
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME,
+	LastPasswordChangeDate DATETIME NULL,
+    LastSuccessfulLogin DATETIME NULL,
+    SecurityStamp NVARCHAR(MAX) NULL,
     FOREIGN KEY (TenantId) REFERENCES Core.Tenants(ID),
     FOREIGN KEY (RoleId) REFERENCES Security.Roles(ID)
 );
-
+ALTER TABLE Security.Users
+ADD 
+    LastPasswordChangeDate DATETIME NULL,
+    LastSuccessfulLogin DATETIME NULL,
+    SecurityStamp NVARCHAR(MAX) NULL;
 CREATE TABLE Security.RefreshTokens (
     ID BIGINT IDENTITY(1,1) PRIMARY KEY,
     UserID BIGINT NOT NULL,

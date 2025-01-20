@@ -77,6 +77,7 @@ builder.Services.AddScoped<ITenantRegistrationService, TenantRegistrationService
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 
+builder.Services.AddScoped<IAuthAuditLogger, AuthAuditLogger>();
 // Other services
 builder.Services.AddScoped<ITenantService, TenantService>();
 

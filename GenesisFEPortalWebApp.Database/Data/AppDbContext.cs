@@ -32,6 +32,8 @@ namespace GenesisFEPortalWebApp.Database.Data
         public DbSet<CustomerModel> Customers { get; set; }
         public DbSet<RefreshTokenModel> RefreshTokens { get; set; }
 
+        public DbSet<SecurityLogModel> SecurityLogs { get; set; }
+
         // Catálogos (solo lectura)
         public DbSet<IdentificationTypeModel> IdentificationTypes { get; set; }
         public DbSet<RegionModel> Region { get; set; }
@@ -39,6 +41,7 @@ namespace GenesisFEPortalWebApp.Database.Data
         public DbSet<CantonModel> Cantons { get; set; }
         public DbSet<DistrictModel> Districts { get; set; }
 
+      
         //public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         //{
         //    try
@@ -104,6 +107,32 @@ namespace GenesisFEPortalWebApp.Database.Data
             //      .WithOne(e => e.Tenant)
             //      .OnDelete(DeleteBehavior.Restrict);
 
+
+            modelBuilder.Entity<SecurityLogModel>(entity =>
+            {
+                entity.Property(e => e.EventType)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(e => e.Email)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.Property(e => e.IpAddress)
+                    .HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<UserModel>(entity =>
+            {
+                entity.Property(e => e.SecurityStamp)
+                    .HasMaxLength(450); // O el tamaño que prefieras
+
+                entity.Property(e => e.LastPasswordChangeDate)
+                    .IsRequired(false);
+
+                entity.Property(e => e.LastSuccessfulLogin)
+                    .IsRequired(false);
+            });
 
             // Aplicar filtro global por tenant
             modelBuilder.Entity<CustomerModel>()

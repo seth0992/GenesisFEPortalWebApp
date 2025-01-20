@@ -82,6 +82,7 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         public async Task UpdateRefreshTokenAsync(RefreshTokenModel refreshToken)
         {
             _context.RefreshTokens.Update(refreshToken);
+            await _context.SaveChangesAsync();
         }
 
         public async Task SaveChangesAsync()

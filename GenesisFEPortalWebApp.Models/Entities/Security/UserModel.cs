@@ -29,5 +29,11 @@ namespace GenesisFEPortalWebApp.Models.Entities.Security
         public virtual RoleModel Role { get; set; } = null!;
         public virtual TenantModel Tenant { get; set; } = null!;
         public virtual ICollection<RefreshTokenModel> RefreshTokens { get; set; } = new List<RefreshTokenModel>();
+
+        // Bloqueo de cuentas 
+        public DateTime? LastSuccessfulLogin { get; set; }
+        public string? SecurityStamp { get; set; }
+        public DateTime? LastPasswordChangeDate { get; set; }
+
     }
 }
