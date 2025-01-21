@@ -16,10 +16,18 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         Task<RefreshTokenModel?> GetRefreshTokenAsync(long userId, string token);
         Task<List<RefreshTokenModel>> GetActiveRefreshTokensByUserIdAsync(long userId);
         Task<bool> EmailExistsAsync(string email);
+        Task<bool> EmailExistsInTenantAsync(string email, long tenantId);
         Task CreateUserAsync(UserModel user);
         Task CreateRefreshTokenAsync(RefreshTokenModel refreshToken);
         Task UpdateRefreshTokenAsync(RefreshTokenModel refreshToken);
-        Task<bool> EmailExistsInTenantAsync(string email, long tenantId);
+        Task UpdateUserLastLoginAsync(long userId, DateTime loginDate);
+        Task UpdateUserSecurityStampAsync(long userId, string securityStamp);
+        Task IncrementAccessFailedCountAsync(long userId);
+        Task ResetAccessFailedCountAsync(long userId);
+        Task UpdateUserLockoutAsync(long userId, DateTime? lockoutEnd);
+        Task<bool> IsUserLockedOutAsync(long userId);
+        Task<int> GetAccessFailedCountAsync(long userId);
+        Task RevokeAllActiveRefreshTokensAsync(long userId);
         Task SaveChangesAsync();
     }
 
@@ -61,13 +69,19 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         public async Task<List<RefreshTokenModel>> GetActiveRefreshTokensByUserIdAsync(long userId)
         {
             return await _context.RefreshTokens
-                .Where(rt => rt.UserId == userId && rt.RevokedAt == null)
+                .Where(rt => rt.UserId == userId && rt.RevokedAt == null && rt.ExpiryDate > DateTime.UtcNow)
                 .ToListAsync();
         }
 
         public async Task<bool> EmailExistsAsync(string email)
         {
             return await _context.Users.AnyAsync(u => u.Email == email);
+        }
+
+        public async Task<bool> EmailExistsInTenantAsync(string email, long tenantId)
+        {
+            return await _context.Users
+                .AnyAsync(u => u.Email == email && u.TenantId == tenantId);
         }
 
         public async Task CreateUserAsync(UserModel user)
@@ -83,18 +97,86 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         public async Task UpdateRefreshTokenAsync(RefreshTokenModel refreshToken)
         {
             _context.RefreshTokens.Update(refreshToken);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
+        }
+
+        public async Task UpdateUserLastLoginAsync(long userId, DateTime loginDate)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.LastLoginDate = loginDate;
+                user.LastSuccessfulLogin = loginDate;
+                await SaveChangesAsync();
+            }
+        }
+
+        public async Task UpdateUserSecurityStampAsync(long userId, string securityStamp)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.SecurityStamp = securityStamp;
+                await SaveChangesAsync();
+            }
+        }
+
+        public async Task IncrementAccessFailedCountAsync(long userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.AccessFailedCount++;
+                await SaveChangesAsync();
+            }
+        }
+
+        public async Task ResetAccessFailedCountAsync(long userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.AccessFailedCount = 0;
+                await SaveChangesAsync();
+            }
+        }
+
+        public async Task UpdateUserLockoutAsync(long userId, DateTime? lockoutEnd)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.LockoutEnd = lockoutEnd;
+                await SaveChangesAsync();
+            }
+        }
+
+        public async Task<bool> IsUserLockedOutAsync(long userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            return user?.LockoutEnd != null && user.LockoutEnd > DateTime.UtcNow;
+        }
+
+        public async Task<int> GetAccessFailedCountAsync(long userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            return user?.AccessFailedCount ?? 0;
+        }
+
+        public async Task RevokeAllActiveRefreshTokensAsync(long userId)
+        {
+            var activeTokens = await GetActiveRefreshTokensByUserIdAsync(userId);
+            foreach (var token in activeTokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+            }
+            await SaveChangesAsync();
         }
 
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
         }
-
-        public async Task<bool> EmailExistsInTenantAsync(string email, long tenantId)
-        {
-            return await _context.Users
-                .AnyAsync(u => u.Email == email && u.TenantId == tenantId);
-        }
     }
+}
 }

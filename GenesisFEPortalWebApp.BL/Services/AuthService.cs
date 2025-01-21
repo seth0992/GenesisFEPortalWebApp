@@ -29,7 +29,6 @@ namespace GenesisFEPortalWebApp.BL.Services
         private readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
         private readonly IAuthRepository _authRepository;
-        private readonly IConfiguration _configuration;
         private readonly ITenantRepository _tenantRepository;
         private readonly ITenantService _tenantService;
         private readonly IPasswordHasher _passwordHasher;
@@ -39,7 +38,6 @@ namespace GenesisFEPortalWebApp.BL.Services
 
         public AuthService(
             IAuthRepository authRepository,
-            IConfiguration configuration, 
             ITenantRepository tenantRepository,
             ITenantService tenantService,
             IPasswordHasher passwordHasher,
@@ -48,7 +46,6 @@ namespace GenesisFEPortalWebApp.BL.Services
             ILogger<AuthService> logger)
         {
             _authRepository = authRepository;
-            _configuration = configuration;
             _tenantRepository = tenantRepository;
             _tenantService = tenantService;
             _passwordHasher = passwordHasher;
@@ -56,7 +53,6 @@ namespace GenesisFEPortalWebApp.BL.Services
             _authAuditLogger = authAuditLogger;
             _logger = logger;
         }
-
 
         public async Task<(UserModel? User, string? Token, string? RefreshToken)> LoginAsync(LoginDto model)
         {
@@ -70,7 +66,7 @@ namespace GenesisFEPortalWebApp.BL.Services
                     return (null, null, null);
                 }
 
-                if (IsAccountLocked(user))
+                if (await _authRepository.IsUserLockedOutAsync(user.ID))
                 {
                     await _authAuditLogger.LogLoginAttempt(model.Email, false, "Cuenta bloqueada");
                     throw new AccountLockedException("La cuenta está temporalmente bloqueada por múltiples intentos fallidos");
@@ -78,12 +74,15 @@ namespace GenesisFEPortalWebApp.BL.Services
 
                 if (!_passwordHasher.VerifyPassword(model.Password, user.PasswordHash))
                 {
-                    await HandleFailedLogin(user);
+                    await HandleFailedLogin(user.ID);
+                    await _authAuditLogger.LogLoginAttempt(model.Email, false, "Contraseña incorrecta");
                     return (null, null, null);
                 }
 
-                await HandleSuccessfulLogin(user);
-                return await GenerateAuthTokens(user);
+                await HandleSuccessfulLogin(user.ID);
+                var (token, refreshToken) = await GenerateAuthTokens(user);
+
+                return (user, token, refreshToken);
             }
             catch (Exception ex)
             {
@@ -92,79 +91,27 @@ namespace GenesisFEPortalWebApp.BL.Services
             }
         }
 
-        private bool IsAccountLocked(UserModel user)
-        {
-            return user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.UtcNow;
-        }
-
-        private async Task HandleFailedLogin(UserModel user)
-        {
-            user.AccessFailedCount++;
-            if (user.AccessFailedCount >= MaxFailedAttempts)
-            {
-                user.LockoutEnd = DateTime.UtcNow.Add(LockoutDuration);
-                await _authAuditLogger.LogLoginAttempt(user.Email, false, "Cuenta bloqueada por múltiples intentos");
-                _logger.LogWarning("Cuenta bloqueada por múltiples intentos fallidos: {Email}", user.Email);
-            }
-            await _authRepository.SaveChangesAsync();
-        }
-
-        private async Task HandleSuccessfulLogin(UserModel user)
-        {
-            user.AccessFailedCount = 0;
-            user.LockoutEnd = null;
-            user.LastLoginDate = DateTime.UtcNow;
-            user.LastSuccessfulLogin = DateTime.UtcNow;
-            user.SecurityStamp = Guid.NewGuid().ToString();
-
-            await _authRepository.SaveChangesAsync();
-            await _authAuditLogger.LogLoginAttempt(user.Email, true, "Login exitoso");
-        }
-
-        private async Task<(UserModel User, string Token, string RefreshToken)> GenerateAuthTokens(UserModel user)
-        {
-            var token = _tokenService.GenerateJwtToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
-
-            var refreshTokenEntity = new RefreshTokenModel
-            {
-                UserId = user.ID,
-                Token = refreshToken,
-                ExpiryDate = DateTime.UtcNow.AddDays(7),
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _authRepository.CreateRefreshTokenAsync(refreshTokenEntity);
-            await _authRepository.SaveChangesAsync();
-
-            return (user, token, refreshToken);
-        }
-
         public async Task<(bool Success, string? ErrorMessage)> RegisterUserAsync(RegisterUserDto model)
         {
             try
             {
-                // Validar que existe un tenant activo
                 var currentTenantId = _tenantService.GetCurrentTenantId();
                 if (currentTenantId == 0)
                 {
                     return (false, "No hay un tenant válido en la sesión actual");
                 }
 
-                // Verificar si el tenant está activo
                 var tenant = await _tenantRepository.GetByIdAsync(currentTenantId);
                 if (tenant == null || !tenant.IsActive)
                 {
                     return (false, "El tenant no está activo o no existe");
                 }
 
-                // Verificar si el email ya existe en el contexto del tenant actual
                 if (await _authRepository.EmailExistsInTenantAsync(model.Email, currentTenantId))
                 {
                     return (false, "El email ya está registrado en este tenant");
                 }
 
-                // Obtener el rol por defecto para el tenant
                 var defaultRole = await _authRepository.GetRoleByNameAsync("User");
                 if (defaultRole == null)
                 {
@@ -190,7 +137,6 @@ namespace GenesisFEPortalWebApp.BL.Services
                 await _authRepository.CreateUserAsync(user);
                 await _authRepository.SaveChangesAsync();
 
-                // Registrar en auditoría
                 await _authAuditLogger.LogLoginAttempt(
                     user.Email,
                     true,
@@ -221,30 +167,15 @@ namespace GenesisFEPortalWebApp.BL.Services
                 return (null, null);
             }
 
-            var user = await _authRepository.GetUserByEmailAsync(principal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty);
+            var user = await _authRepository.GetUserByEmailAsync(
+                principal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty);
+
             if (user == null)
             {
                 return (null, null);
             }
 
-            var newToken = _tokenService.GenerateJwtToken(user);
-            var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-            // Revocar el refresh token anterior y crear uno nuevo
-            storedRefreshToken.RevokedAt = DateTime.UtcNow;
-            await _authRepository.UpdateRefreshTokenAsync(storedRefreshToken);
-
-            var refreshTokenEntity = new RefreshTokenModel
-            {
-                UserId = userId,
-                Token = newRefreshToken,
-                ExpiryDate = DateTime.UtcNow.AddDays(7),
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _authRepository.CreateRefreshTokenAsync(refreshTokenEntity);
-            await _authRepository.SaveChangesAsync();
-
+            var (newToken, newRefreshToken) = await GenerateAuthTokens(user);
             return (newToken, newRefreshToken);
         }
 
@@ -257,16 +188,49 @@ namespace GenesisFEPortalWebApp.BL.Services
             }
 
             var userId = long.Parse(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var refreshTokens = await _authRepository.GetActiveRefreshTokensByUserIdAsync(userId);
+            await _authRepository.RevokeAllActiveRefreshTokensAsync(userId);
 
-            foreach (var refreshToken in refreshTokens)
-            {
-                refreshToken.RevokedAt = DateTime.UtcNow;
-                await _authRepository.UpdateRefreshTokenAsync(refreshToken);
-            }
-
-            await _authRepository.SaveChangesAsync();
             return true;
         }
+
+        private async Task HandleFailedLogin(long userId)
+        {
+            await _authRepository.IncrementAccessFailedCountAsync(userId);
+            var failedCount = await _authRepository.GetAccessFailedCountAsync(userId);
+
+            if (failedCount >= MaxFailedAttempts)
+            {
+                await _authRepository.UpdateUserLockoutAsync(userId, DateTime.UtcNow.Add(LockoutDuration));
+                _logger.LogWarning("Usuario bloqueado por múltiples intentos fallidos: {UserId}", userId);
+            }
+        }
+
+        private async Task HandleSuccessfulLogin(long userId)
+        {
+            await _authRepository.ResetAccessFailedCountAsync(userId);
+            await _authRepository.UpdateUserLockoutAsync(userId, null);
+            await _authRepository.UpdateUserLastLoginAsync(userId, DateTime.UtcNow);
+            await _authRepository.UpdateUserSecurityStampAsync(userId, Guid.NewGuid().ToString());
+        }
+
+        private async Task<(string Token, string RefreshToken)> GenerateAuthTokens(UserModel user)
+        {
+            var token = _tokenService.GenerateJwtToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            var refreshTokenEntity = new RefreshTokenModel
+            {
+                UserId = user.ID,
+                Token = refreshToken,
+                ExpiryDate = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _authRepository.CreateRefreshTokenAsync(refreshTokenEntity);
+            await _authRepository.SaveChangesAsync();
+
+            return (token, refreshToken);
+        }
     }
+}
 }
