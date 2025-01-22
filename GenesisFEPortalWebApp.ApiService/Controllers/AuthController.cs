@@ -21,54 +21,91 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
         }
 
         [HttpPost("login")]
-        [AllowAnonymous]
         public async Task<ActionResult<BaseResponseModel>> Login([FromBody] LoginDto model)
         {
-            try
+            var (user, token, refreshToken) = await _authService.LoginAsync(model);
+
+            if (user == null || token == null)
             {
-                var (user, token, refreshToken) = await _authService.LoginAsync(model);
-
-                if (user == null || token == null)
-                {
-                    return Ok(new BaseResponseModel
-                    {
-                        Success = false,
-                        ErrorMessage = "Credenciales inválidas"
-                    });
-                }
-
-                var response = new BaseResponseModel
-                {
-                    Success = true,
-                    Data = new
-                    {
-                        user = new UserDto
-                        {
-                            Id = user.ID,
-                            Email = user.Email,
-                            Username = user.Username,
-                            FirstName = user.FirstName,
-                            LastName = user.LastName,
-                            RoleName = user.Role.Name,
-                            TenantName = user.Tenant.Name
-                        },
-                        token,
-                        refreshToken
-                    }
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error en login");
                 return Ok(new BaseResponseModel
                 {
                     Success = false,
-                    ErrorMessage = "Error al procesar la solicitud"
+                    ErrorMessage = "Credenciales inválidas"
                 });
             }
+
+            // Crear el objeto de respuesta de login
+            var loginResponse = new LoginResponseModel
+            {
+                Token = token,
+                RefreshToken = refreshToken,
+                TokenExpired = DateTimeOffset.UtcNow.AddMinutes(30).ToUnixTimeSeconds(),
+                User = new UserDto
+                {
+                    Id = user.ID,
+                    Email = user.Email,
+                    Username = user.Username,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    RoleName = user.Role.Name
+                }
+            };
+
+            // Envolver en BaseResponseModel
+            return Ok(new BaseResponseModel
+            {
+                Success = true,
+                Data = loginResponse    // Este es el objeto que necesitamos deserializar
+            });
         }
+
+        //public async Task<ActionResult<BaseResponseModel>> Login([FromBody] LoginDto model)
+        //{
+        //    try
+        //    {
+        //        var (user, token, refreshToken) = await _authService.LoginAsync(model);
+
+        //        if (user == null || token == null)
+        //        {
+        //            return Ok(new BaseResponseModel
+        //            {
+        //                Success = false,
+        //                ErrorMessage = "Credenciales inválidas"
+        //            });
+        //        }
+
+        //        var response = new BaseResponseModel
+        //        {
+        //            Success = true,
+        //            Data = new
+        //            {
+        //                user = new UserDto
+        //                {
+        //                    Id = user.ID,
+        //                    Email = user.Email,
+        //                    Username = user.Username,
+        //                    FirstName = user.FirstName,
+        //                    LastName = user.LastName,
+        //                    RoleName = user.Role.Name,
+        //                    TenantName = user.Tenant.Name
+        //                },
+        //                token,
+        //                refreshToken
+        //            }
+        //        };
+
+        //        return Ok(response);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error en login");
+        //        return Ok(new BaseResponseModel
+        //        {
+        //            Success = false,
+        //            ErrorMessage = "Error al procesar la solicitud"
+        //        });
+        //    }
+        //}
 
         [HttpPost("register")]
         [Authorize(Roles = "TenantAdmin")]
