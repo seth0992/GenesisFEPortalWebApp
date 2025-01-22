@@ -38,7 +38,7 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
             var loginResponse = new LoginResponseModel
             {
                 Token = token,
-                RefreshToken = refreshToken,
+                RefreshToken = refreshToken!,
                 TokenExpired = DateTimeOffset.UtcNow.AddMinutes(30).ToUnixTimeSeconds(),
                 User = new UserDto
                 {

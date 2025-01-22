@@ -10,14 +10,14 @@ namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
     public partial class CreateCustomer
     {
         [Inject]
-        public ApiClient ApiClient { get; set; }
+        public required ApiClient ApiClient { get; set; }
         [Inject]
-        private IToastService toastService { get; set; }
+        private IToastService toastService { get; set; } = default!;
         [Inject]
-        private NavigationManager NavigationManager { get; set; }
-        public CustomerModel customer { get; set; } = new CustomerModel();
+        private NavigationManager NavigationManager { get; set; } = default!;
+        public CustomerModel customer { get; set; } = new();
 
-        public List<ProvinceModel> Provinces { get; set; } = new List<ProvinceModel>();
+        public List<ProvinceModel> Provinces { get; set; } = new();
         public List<CantonModel> Cantons { get; set; } = new();
         public List<DistrictModel> Districts { get; set; } = new();
         public List<IdentificationTypeModel> IdentificationTypes { get; set; } = new();

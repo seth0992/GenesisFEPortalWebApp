@@ -41,7 +41,7 @@ public class ApiClient(HttpClient httpClient,
         }
     }
 
-    private async Task<LoginResponseModel> RefreshToken(string refreshToken)
+    private async Task<LoginResponseModel?> RefreshToken(string refreshToken)
     {
         return await httpClient.GetFromJsonAsync<LoginResponseModel>(
             $"/api/auth/refreshToken?token={refreshToken}");
@@ -50,7 +50,8 @@ public class ApiClient(HttpClient httpClient,
     public async Task<T> GetFromJsonAsync<T>(string path)
     {
         await SetAuthorizationHeader();
-        return await httpClient.GetFromJsonAsync<T>(path)!;
+        var result = await httpClient.GetFromJsonAsync<T>(path);
+        return result ?? throw new InvalidOperationException("Received null response from the server.");
     }
 
     public async Task<T1> PostAsync<T1, T2>(string path, T2 postModel)
@@ -67,15 +68,15 @@ public class ApiClient(HttpClient httpClient,
                 // Primero deserializamos a un objeto dinámico para manejar la estructura anidada
                 var baseResponse = JsonConvert.DeserializeObject<BaseResponseModel>(jsonString);
 
-                if (baseResponse.Success)
+                if (baseResponse != null && baseResponse.Success)
                 {
                     // Convertimos el objeto data a JSON y luego al tipo deseado
                     string dataJson = JsonConvert.SerializeObject(baseResponse.Data);
-                    return JsonConvert.DeserializeObject<T1>(dataJson);
+                    return JsonConvert.DeserializeObject<T1>(dataJson)!;
                 }
                 else
                 {
-                    throw new ApplicationException(baseResponse.ErrorMessage ?? "Error desconocido en la respuesta");
+                    throw new ApplicationException(baseResponse?.ErrorMessage ?? "Error desconocido en la respuesta");
                 }
             }
 
@@ -107,7 +108,8 @@ public class ApiClient(HttpClient httpClient,
     public async Task<T> DeleteAsync<T>(string path)
     {
         await SetAuthorizationHeader();
-        return await httpClient.DeleteFromJsonAsync<T>(path)!;
+        var result = await httpClient.DeleteFromJsonAsync<T>(path);
+        return result ?? throw new InvalidOperationException("Received null response from the server.");
     }
 }
 

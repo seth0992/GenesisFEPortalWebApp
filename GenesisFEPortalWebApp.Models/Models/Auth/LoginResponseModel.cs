@@ -10,15 +10,15 @@ namespace GenesisFEPortalWebApp.Models.Models.Auth
     public class LoginResponseModel
     {
         [JsonProperty("token")]  // Asegura el mapeo correcto con el JSON
-        public string Token { get; set; }
+        public string Token { get; set; } = string.Empty;
 
         [JsonProperty("refreshToken")]
-        public string RefreshToken { get; set; }
+        public string RefreshToken { get; set; } = string.Empty;
 
         [JsonProperty("tokenExpired")]
         public long TokenExpired { get; set; }
 
         [JsonProperty("user")]
-        public UserDto User { get; set; }
+        public UserDto User { get; set; } = null!;
     }
 }

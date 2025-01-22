@@ -8,10 +8,10 @@ namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
     public partial class ListCustomer
     {
         [Inject]
-        public ApiClient ApiClient { get; set; }
+        public required ApiClient ApiClient { get; set; }
         [Inject]
-        private NavigationManager NavigationManager { get; set; }
-        public IQueryable<CustomerModel> customers { get; set; }
+        private NavigationManager NavigationManager { get; set; } = default!;
+        public IQueryable<CustomerModel> customers { get; set; } = default!;
 
         protected override async Task OnInitializedAsync()
         {
@@ -26,15 +26,14 @@ namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
             await base.OnInitializedAsync();
         }
 
-        private async void OnClick(string text, long idCustomer)
+        private void OnClick(string text, long idCustomer)
         {
             if (text.Equals("update"))
             {
                 var url = $"/customer/update/{idCustomer}";
                 NavigationManager.NavigateTo(url);
-                //   await CargarDatosConFiltro();
             }
-            else if (text.Equals("limpiarFiltroExcel"))
+            else if (text.Equals(""))
             {
 
             }
