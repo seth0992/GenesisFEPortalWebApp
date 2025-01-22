@@ -19,7 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Components\Pages\Auth\" />
     <Folder Include="Components\Pages\Tenant\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

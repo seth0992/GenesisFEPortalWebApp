@@ -4,7 +4,6 @@ using GenesisFEPortalWebApp.Models.Entities.Core;
 using GenesisFEPortalWebApp.Models.Models;
 using Microsoft.AspNetCore.Components;
 using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations;
 
 namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
 {
