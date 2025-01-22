@@ -1,6 +1,8 @@
 using Blazored.Toast;
 using GenesisFEPortalWebApp.Web;
 using GenesisFEPortalWebApp.Web.Components;
+using GenesisFEPortalWebApp.Web.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +18,10 @@ builder.Services.AddOutputCache();
 
 builder.Services.AddRadzenComponents(); // Library for radzen
 builder.Services.AddBlazoredToast(); // Library for toast notifications -> Change to your preferred library.
+
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddHttpClient<ApiClient>(client =>
     {
