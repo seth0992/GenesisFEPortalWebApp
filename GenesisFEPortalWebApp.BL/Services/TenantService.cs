@@ -35,25 +35,42 @@ namespace GenesisFEPortalWebApp.BL.Services
         {
             try
             {
-                // Si ya tenemos el tenant ID en caché, lo retornamos
-                if (_currentTenantId.HasValue)
-                    return _currentTenantId.Value;
-
-                // Para endpoints no autenticados (login/registro)
-                if (_httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
+                // Obtener el contexto HTTP actual
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null)
+                {
+                    _logger.LogWarning("HttpContext no disponible");
                     return 0;
+                }
 
-                var tenantClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("TenantId");
+                // Verificar si el usuario está autenticado
+                if (!httpContext.User?.Identity?.IsAuthenticated ?? true)
+                {
+                    _logger.LogWarning("Usuario no autenticado");
+                    return 0;
+                }
+
+                // Intentar obtener el TenantId del claim
+                var tenantClaim = httpContext.User.FindFirst("TenantId");
                 if (tenantClaim == null)
-                    throw new UnauthorizedAccessException("No se ha especificado el tenant");
+                {
+                    _logger.LogWarning("Claim TenantId no encontrado");
+                    return 0;
+                }
 
-                _currentTenantId = long.Parse(tenantClaim.Value);
-                return _currentTenantId.Value;
+                if (!long.TryParse(tenantClaim.Value, out long tenantId))
+                {
+                    _logger.LogError("Error al parsear TenantId: {Value}", tenantClaim.Value);
+                    return 0;
+                }
+
+                _logger.LogDebug("TenantId obtenido correctamente: {TenantId}", tenantId);
+                return tenantId;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el tenant actual");
-                throw new UnauthorizedAccessException("Error al obtener el tenant", ex);
+                _logger.LogError(ex, "Error al obtener el TenantId actual");
+                return 0;
             }
         }
 

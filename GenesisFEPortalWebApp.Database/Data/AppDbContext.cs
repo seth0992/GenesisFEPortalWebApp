@@ -33,6 +33,7 @@ namespace GenesisFEPortalWebApp.Database.Data
         public DbSet<RefreshTokenModel> RefreshTokens { get; set; }
 
         public DbSet<SecurityLogModel> SecurityLogs { get; set; }
+        public DbSet<SecretModel> Secrets { get; set; }
 
         // Catálogos (solo lectura)
         public DbSet<IdentificationTypeModel> IdentificationTypes { get; set; }
@@ -121,6 +122,25 @@ namespace GenesisFEPortalWebApp.Database.Data
                 entity.Property(e => e.IpAddress)
                     .HasMaxLength(50);
             });
+
+            //modelBuilder.Entity<SecretModel>(entity =>
+            //{
+            //    entity.ToTable("Secrets", "Security");
+
+            //    entity.HasIndex(e => new { e.TenantId, e.Key, e.UserId })
+            //        .IsUnique()
+            //        .HasFilter("[UserId] IS NOT NULL");
+
+            //    entity.HasOne(e => e.Tenant)
+            //        .WithMany()
+            //        .HasForeignKey(e => e.TenantId)
+            //        .OnDelete(DeleteBehavior.Restrict);
+
+            //    entity.HasOne(e => e.User)
+            //        .WithMany()
+            //        .HasForeignKey(e => e.UserId)
+            //        .OnDelete(DeleteBehavior.Restrict);
+            //});
 
             modelBuilder.Entity<UserModel>(entity =>
             {

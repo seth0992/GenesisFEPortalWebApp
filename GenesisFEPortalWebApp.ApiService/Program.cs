@@ -74,13 +74,24 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITenantRegistrationService, TenantRegistrationService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 
 builder.Services.AddScoped<IAuthAuditLogger, AuthAuditLogger>();
 // Other services
-builder.Services.AddScoped<ITenantService, TenantService>();
 
+// Configuración de seguridad
+builder.Services.Configure<SecurityOptions>(
+    builder.Configuration.GetSection("Security"));
+
+
+// Registrar servicios relacionados con tenant y autenticación
+builder.Services.AddScoped<ITenantService, TenantService>();
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
+builder.Services.AddScoped<ISecretRepository, SecretRepository>();
+builder.Services.AddScoped<ISecretService, SecretService>();
+
+// Actualizar el registro del servicio de tokens
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Agregar estas líneas después de builder.Services.AddControllers
 

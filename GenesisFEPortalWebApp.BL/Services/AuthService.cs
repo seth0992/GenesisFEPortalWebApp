@@ -79,8 +79,9 @@ namespace GenesisFEPortalWebApp.BL.Services
                     return (null, null, null);
                 }
 
+
                 await HandleSuccessfulLogin(user.ID);
-                var (token, refreshToken) = await GenerateAuthTokens(user);
+                var (token, refreshToken) = await _tokenService.GenerateTokensAsync(user);
 
                 return (user, token, refreshToken);
             }
@@ -90,7 +91,6 @@ namespace GenesisFEPortalWebApp.BL.Services
                 throw;
             }
         }
-
         public async Task<(bool Success, string? ErrorMessage)> RegisterUserAsync(RegisterUserDto model)
         {
             try
@@ -153,45 +153,21 @@ namespace GenesisFEPortalWebApp.BL.Services
 
         public async Task<(string? Token, string? RefreshToken)> RefreshTokenAsync(string token, string refreshToken)
         {
-            var principal = _tokenService.GetPrincipalFromExpiredToken(token);
-            if (principal == null)
+            var result = await _tokenService.RefreshTokenAsync(token, refreshToken);
+            if (!result.HasValue)
             {
                 return (null, null);
             }
 
-            var userId = long.Parse(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var storedRefreshToken = await _authRepository.GetRefreshTokenAsync(userId, refreshToken);
-
-            if (storedRefreshToken == null || storedRefreshToken.ExpiryDate < DateTime.UtcNow)
-            {
-                return (null, null);
-            }
-
-            var user = await _authRepository.GetUserByEmailAsync(
-                principal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty);
-
-            if (user == null)
-            {
-                return (null, null);
-            }
-
-            var (newToken, newRefreshToken) = await GenerateAuthTokens(user);
+            var (newToken, newRefreshToken) = result.Value;
             return (newToken, newRefreshToken);
         }
 
         public async Task<bool> RevokeTokenAsync(string token)
         {
-            var principal = _tokenService.GetPrincipalFromExpiredToken(token);
-            if (principal == null)
-            {
-                return false;
-            }
-
-            var userId = long.Parse(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            await _authRepository.RevokeAllActiveRefreshTokensAsync(userId);
-
-            return true;
+            return await _tokenService.RevokeTokenAsync(token);
         }
+
 
         private async Task HandleFailedLogin(long userId)
         {
@@ -213,24 +189,24 @@ namespace GenesisFEPortalWebApp.BL.Services
             await _authRepository.UpdateUserSecurityStampAsync(userId, Guid.NewGuid().ToString());
         }
 
-        private async Task<(string Token, string RefreshToken)> GenerateAuthTokens(UserModel user)
-        {
-            var token = _tokenService.GenerateJwtToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
+        //private async Task<(string Token, string RefreshToken)> GenerateAuthTokens(UserModel user)
+        //{
+        //    var token = _tokenService.GenerateJwtToken(user);
+        //    var refreshToken = _tokenService.GenerateRefreshToken();
 
-            var refreshTokenEntity = new RefreshTokenModel
-            {
-                UserId = user.ID,
-                Token = refreshToken,
-                ExpiryDate = DateTime.UtcNow.AddDays(7),
-                CreatedAt = DateTime.UtcNow
-            };
+        //    var refreshTokenEntity = new RefreshTokenModel
+        //    {
+        //        UserId = user.ID,
+        //        Token = refreshToken,
+        //        ExpiryDate = DateTime.UtcNow.AddDays(7),
+        //        CreatedAt = DateTime.UtcNow
+        //    };
 
-            await _authRepository.CreateRefreshTokenAsync(refreshTokenEntity);
-            await _authRepository.SaveChangesAsync();
+        //    await _authRepository.CreateRefreshTokenAsync(refreshTokenEntity);
+        //    await _authRepository.SaveChangesAsync();
 
-            return (token, refreshToken);
-        }
+        //    return (token, refreshToken);
+        //}
     }
 }
 

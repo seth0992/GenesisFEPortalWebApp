@@ -194,6 +194,52 @@ CREATE TABLE Audit.AccessLog (
     FOREIGN KEY (TenantId) REFERENCES Core.Tenants(ID)
 );
 
+/************************************/
+/* Tablas de Configuración          */
+/************************************/
+CREATE TABLE Security.Secrets
+(
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    TenantId BIGINT NOT NULL,
+    UserId BIGINT NULL,
+    [Key] NVARCHAR(100) NOT NULL,
+    EncryptedValue NVARCHAR(MAX) NOT NULL,
+    Description NVARCHAR(500),
+    ExpirationDate DATETIME NULL,
+    IsEncrypted BIT DEFAULT 1,
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    CONSTRAINT FK_Secrets_Tenants FOREIGN KEY (TenantId) 
+        REFERENCES Core.Tenants(ID),
+    CONSTRAINT FK_Secrets_Users FOREIGN KEY (UserId) 
+        REFERENCES Security.Users(ID),
+    CONSTRAINT UQ_Secrets_TenantKey UNIQUE (TenantId, [Key], UserId)
+);
+
+-- Índices para mejorar el rendimiento
+CREATE INDEX IX_Secrets_TenantId ON Security.Secrets(TenantId);
+CREATE INDEX IX_Secrets_UserId ON Security.Secrets(UserId);
+CREATE INDEX IX_Secrets_Key ON Security.Secrets([Key]);
+
+-- Insertar secreto JWT para el tenant del sistema
+INSERT INTO Security.Secrets (
+    TenantId,
+    [Key],
+    EncryptedValue,
+    Description,
+    IsEncrypted,
+    IsActive
+)
+SELECT 
+    t.ID,
+    'JWT_SECRET',
+    'MySuperSecret12k3jioasd8o12k3joiajsdij1l2kj3!!!!1k;lajskdjalkdj1sdlkj1ndas123qq', -- Este valor será encriptado por la aplicación
+    'JWT signing key for authentication',
+    0, -- No encriptado inicialmente
+    1  -- Activo
+FROM Core.Tenants t
+WHERE t.Name = 'Sistema';
 
 /************************************/
 /* Índices                         */

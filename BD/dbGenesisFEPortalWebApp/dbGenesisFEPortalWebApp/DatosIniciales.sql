@@ -47,6 +47,37 @@ VALUES
 ('User', 'Usuario básico con acceso limitado', 1, 'basic.*'),
 ('Guest', 'Usuario invitado con acceso de solo lectura', 1, 'read.*');
 
+
+
+
+-- En DatosIniciales.sql
+-- Asegurarse de que todos los tenants tienen un secreto JWT
+INSERT INTO Security.Secrets (
+    TenantId,
+    [Key],
+    EncryptedValue,
+    Description,
+    IsEncrypted,
+    IsActive,
+    CreatedAt
+)
+SELECT 
+    t.ID,
+    'JWT_SECRET',
+    'hdxV67hapHBoOIIwiERrw/WRmeVfUnsgKevLvNBMrDBBlLm6C5sWJcGTDeJKmEGAbIj1I+EJ8viKymRXVXfYPMcal1NWgFv9hl47mwaAcCFm9HlKX7aajHEETrtkJ8HO6mP+k6JNHcgmpWO4IuSs/w==', -- Deberías cambiarlo en producción
+    'JWT signing key for authentication',
+    0, -- No encriptado inicialmente
+    1,
+    GETUTCDATE()
+FROM Core.Tenants t
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM Security.Secrets s 
+    WHERE s.TenantId = t.ID 
+    AND s.[Key] = 'JWT_SECRET'
+);
+
+select * from Security.Secrets
 -- Catalogos 
 
 -- Catalogo de tipos de indentificaciones
