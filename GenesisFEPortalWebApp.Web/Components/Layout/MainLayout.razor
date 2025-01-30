@@ -1,4 +1,8 @@
-﻿@inherits LayoutComponentBase
+﻿@using Blazored.Toast.Configuration
+@using GenesisFEPortalWebApp.Web.Services.Authentication
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
 <div class="page">
     <div class="sidebar">
@@ -9,13 +13,25 @@
         <div class="top-row px-4">
             <AuthorizeView>
                 <Authorized>
-                    <div>Hello, @context.User.Identity?.Name!</div>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                        <RadzenStack Orientation="Orientation.Vertical" Gap="0">
+                            <RadzenText TextStyle="TextStyle.Subtitle2">
+                                @context.User.FindFirst(ClaimTypes.Name)?.Value
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption">
+                                @context.User.FindFirst(ClaimTypes.Email)?.Value
+                            </RadzenText>
+                        </RadzenStack>
+                        <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                      Icon="logout"
+                                      Click="@(() => Navigation.NavigateTo("/logout"))" />
+                    </RadzenStack>
                 </Authorized>
                 <NotAuthorized>
-                    <div>You're not authorized.</div>
+                    <RadzenLink Path="/login" Text="Login" />
                 </NotAuthorized>
             </AuthorizeView>
-            <a href="/logout">LogOut</a>
+         
         </div>
 
         <article class="content px-4">
@@ -24,8 +40,35 @@
     </main>
 </div>
 
+<BlazoredToasts Position="ToastPosition.TopRight"
+                Timeout="10"
+                IconType="IconType.FontAwesome"
+                SuccessClass="success-toast-override"
+                SuccessIcon="fa fa-thumbs-up"
+                ErrorIcon="fa fa-bug" />
+
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+        @code{
+        
+    public bool IsShowContent { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthStateProvider).GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            IsShowContent = true;
+        }
+
+    }
+}

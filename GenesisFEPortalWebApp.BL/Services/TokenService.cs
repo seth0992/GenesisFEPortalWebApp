@@ -84,13 +84,13 @@ namespace GenesisFEPortalWebApp.BL.Services
 
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, user.ID.ToString()),
-                new(ClaimTypes.Name, user.Username),
-                new(ClaimTypes.Email, user.Email),
-                new("TenantId", user.TenantId.ToString()),
-                new(ClaimTypes.Role, user.Role.Name)
-            };
+{
+    new(ClaimTypes.NameIdentifier, user.ID.ToString()),
+    new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"), // Agregamos el nombre completo
+    new(ClaimTypes.Email, user.Email),
+    new("TenantId", user.TenantId.ToString()),
+    new(ClaimTypes.Role, user.Role.Name)
+};
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {

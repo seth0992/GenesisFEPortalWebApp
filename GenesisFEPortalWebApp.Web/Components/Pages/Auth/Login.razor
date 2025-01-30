@@ -41,7 +41,6 @@
 
 @code {
     private LoginDto loginModel = new();
-
     private async Task HandleLogin()
     {
         try
@@ -52,11 +51,16 @@
             {
                 await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result);
                 NavigationManager.NavigateTo("/");
+                ToastService.ShowSuccess("Inicio de sesión exitoso");
             }
             else
             {
                 ToastService.ShowError("Error en el inicio de sesión");
             }
+        }
+        catch (ApplicationException ex)
+        {
+            ToastService.ShowError(ex.Message);
         }
         catch (JsonSerializationException ex)
         {

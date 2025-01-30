@@ -60,17 +60,19 @@ public class ApiClient(HttpClient httpClient,
         try
         {
             var response = await httpClient.PostAsJsonAsync(path, postModel);
+
+            if (path.Contains("/api/auth/login"))
+            {
+                return (T1)(object)await ProcessLoginResponse(response);
+            }
+
             if (response != null && response.IsSuccessStatusCode)
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Raw response: {jsonString}"); // Para debugging
-
-                // Primero deserializamos a un objeto dinámico para manejar la estructura anidada
                 var baseResponse = JsonConvert.DeserializeObject<BaseResponseModel>(jsonString);
 
                 if (baseResponse != null && baseResponse.Success)
                 {
-                    // Convertimos el objeto data a JSON y luego al tipo deseado
                     string dataJson = JsonConvert.SerializeObject(baseResponse.Data);
                     return JsonConvert.DeserializeObject<T1>(dataJson)!;
                 }
@@ -91,6 +93,61 @@ public class ApiClient(HttpClient httpClient,
         {
             Console.WriteLine($"Error general: {ex.Message}");
             throw new HttpRequestException($"Error en la petición a {path}: {ex.Message}", ex);
+        }
+    }
+
+    private async Task<LoginResponseModel> ProcessLoginResponse(HttpResponseMessage response)
+    {
+        try
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Error de servidor: {response.StatusCode}");
+            }
+
+            var jsonString = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Raw response from login: {jsonString}"); // Para debugging
+
+            var baseResponse = JsonConvert.DeserializeObject<BaseResponseModel>(jsonString);
+
+            if (baseResponse == null)
+            {
+                throw new ApplicationException("La respuesta del servidor está vacía");
+            }
+
+            if (!baseResponse.Success)
+            {
+                throw new ApplicationException(baseResponse.ErrorMessage);
+            }
+
+            // Convertir el objeto Data a LoginResponseModel
+            var dataJson = JsonConvert.SerializeObject(baseResponse.Data);
+            var loginResponse = JsonConvert.DeserializeObject<LoginResponseModel>(dataJson);
+
+            if (loginResponse == null)
+            {
+                throw new ApplicationException("Error al procesar la respuesta de login");
+            }
+
+            // Validar que tenemos toda la información necesaria
+            if (string.IsNullOrEmpty(loginResponse.Token) ||
+                string.IsNullOrEmpty(loginResponse.RefreshToken) ||
+                loginResponse.User == null)
+            {
+                throw new ApplicationException("Respuesta de login incompleta");
+            }
+
+            return loginResponse;
+        }
+        catch (JsonSerializationException ex)
+        {
+            Console.WriteLine($"Error de deserialización: {ex.Message}");
+            throw new ApplicationException("Error al procesar la respuesta del servidor", ex);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error general en ProcessLoginResponse: {ex.Message}");
+            throw new ApplicationException("Error en el proceso de login", ex);
         }
     }
 

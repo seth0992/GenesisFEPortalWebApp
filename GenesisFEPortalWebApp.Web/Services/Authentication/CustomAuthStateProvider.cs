@@ -31,6 +31,18 @@ namespace GenesisFEPortalWebApp.Web.Services.Authentication
         {
             await _localStorage.SetAsync("sessionState", model);
             var identity = GetClaimsIdentity(model.Token);
+
+            // Agregar claims adicionales si es necesario
+            if (!identity.HasClaim(c => c.Type == ClaimTypes.Name))
+            {
+                identity.AddClaim(new Claim(ClaimTypes.Name,
+                    $"{model.User.FirstName} {model.User.LastName}"));
+            }
+            if (!identity.HasClaim(c => c.Type == ClaimTypes.Email))
+            {
+                identity.AddClaim(new Claim(ClaimTypes.Email, model.User.Email));
+            }
+
             var user = new ClaimsPrincipal(identity);
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
