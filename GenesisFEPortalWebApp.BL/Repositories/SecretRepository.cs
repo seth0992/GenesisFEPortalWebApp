@@ -10,36 +10,35 @@ using System.Threading.Tasks;
 
 namespace GenesisFEPortalWebApp.BL.Repositories
 {
-    /// <summary>
-    /// Interfaz para el repositorio de secretos
-    /// </summary>
-    public interface ISecretRepository
-    {
+  
+        public interface ISecretRepository
+        {
         /// <summary>
-        /// Obtiene un secreto específico por clave y tenant
+        /// Obtiene el valor de un secreto específico para un tenant
         /// </summary>
-        Task<SecretModel?> GetSecretAsync(string key, long tenantId, long? userId = null);
+        Task<string?> GetSecretValueAsync(string key, long tenantId);
 
         /// <summary>
-        /// Obtiene todos los secretos de un tenant
+        /// Verifica si existe un secreto específico para un tenant
         /// </summary>
-        Task<List<SecretModel>> GetSecretsForTenantAsync(long tenantId);
+        Task<bool> SecretExistsAsync(string key, long tenantId);
 
         /// <summary>
-        /// Obtiene todos los secretos de un usuario específico
+        /// Guarda un nuevo secreto o actualiza uno existente
         /// </summary>
-        Task<List<SecretModel>> GetSecretsForUserAsync(long tenantId, long userId);
+        Task SaveSecretAsync(string key, string value, long tenantId, string description);
 
         /// <summary>
-        /// Guarda un secreto nuevo o actualiza uno existente
+        /// Desactiva un secreto específico
         /// </summary>
-        Task<SecretModel> SaveSecretAsync(SecretModel secret);
+        Task DeactivateSecretAsync(string key, long tenantId);
 
         /// <summary>
-        /// Elimina lógicamente un secreto
+        /// Obtiene todos los secretos activos para un tenant
         /// </summary>
-        Task<bool> DeleteSecretAsync(long id, long tenantId);
+        Task<List<SecretModel>> GetAllSecretsForTenantAsync(long tenantId);
     }
+
 
     /// <summary>
     /// Implementación del repositorio de secretos
@@ -57,7 +56,10 @@ namespace GenesisFEPortalWebApp.BL.Repositories
             _logger = logger;
         }
 
-        public async Task<SecretModel?> GetSecretAsync(string key, long tenantId, long? userId = null)
+        /// <summary>
+        /// Obtiene el valor de un secreto específico para un tenant.
+        /// </summary>
+        public async Task<string?> GetSecretValueAsync(string key, long tenantId)
         {
             try
             {
@@ -65,33 +67,19 @@ namespace GenesisFEPortalWebApp.BL.Repositories
                     "Buscando secreto - Key: {Key}, TenantId: {TenantId}",
                     key, tenantId);
 
-                // Construimos la consulta base
-                var query = _context.Secrets
+                // Buscamos un secreto activo que coincida con la clave y el tenant
+                var secret = await _context.Secrets
                     .Where(s => s.Key == key &&
                                s.TenantId == tenantId &&
-                               s.UserId == userId &&
-                               s.IsActive);
-
-                // Verificamos la expiración si existe
-                query = query.Where(s => !s.ExpirationDate.HasValue ||
-                                       s.ExpirationDate > DateTime.UtcNow);
-
-                var secret = await query.FirstOrDefaultAsync();
+                               s.IsActive)
+                    .Select(s => s.Value)
+                    .FirstOrDefaultAsync();
 
                 if (secret != null)
                 {
-                    _logger.LogInformation("Secreto encontrado para tenant {TenantId}", tenantId);
-
-                    // Log detallado del secreto encontrado
-                    _logger.LogDebug("Detalles del secreto encontrado: " +
-                        "ID: {ID}, " +
-                        "TenantId: {TenantId}, " +
-                        "IsEncrypted: {IsEncrypted}, " +
-                        "ValueLength: {ValueLength}",
-                        secret.ID,
-                        secret.TenantId,
-                        secret.IsEncrypted,
-                        secret.EncryptedValue?.Length ?? 0);
+                    _logger.LogInformation(
+                        "Secreto encontrado para tenant {TenantId}",
+                        tenantId);
                 }
                 else
                 {
@@ -111,95 +99,147 @@ namespace GenesisFEPortalWebApp.BL.Repositories
             }
         }
 
-        public async Task<List<SecretModel>> GetSecretsForTenantAsync(long tenantId)
+        /// <summary>
+        /// Verifica si existe un secreto específico para un tenant.
+        /// </summary>
+        public async Task<bool> SecretExistsAsync(string key, long tenantId)
         {
             try
             {
                 return await _context.Secrets
-                    .Where(s =>
-                        s.TenantId == tenantId &&
-                        s.UserId == null &&
-                        s.IsActive &&
-                        (!s.ExpirationDate.HasValue || s.ExpirationDate > DateTime.UtcNow))
-                    .ToListAsync();
+                    .AnyAsync(s => s.Key == key &&
+                                 s.TenantId == tenantId &&
+                                 s.IsActive);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting secrets for tenant {TenantId}", tenantId);
+                _logger.LogError(ex,
+                    "Error verificando existencia de secreto - Key: {Key}, TenantId: {TenantId}",
+                    key, tenantId);
                 throw;
             }
         }
 
-        public async Task<List<SecretModel>> GetSecretsForUserAsync(long tenantId, long userId)
+        /// <summary>
+        /// Guarda un nuevo secreto o actualiza uno existente para un tenant específico.
+        /// </summary>
+        public async Task SaveSecretAsync(
+            string key,
+            string value,
+            long tenantId,
+            string description)
         {
             try
             {
-                return await _context.Secrets
-                    .Where(s =>
-                        s.TenantId == tenantId &&
-                        s.UserId == userId &&
-                        s.IsActive &&
-                        (!s.ExpirationDate.HasValue || s.ExpirationDate > DateTime.UtcNow))
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting secrets for user {UserId}", userId);
-                throw;
-            }
-        }
+                // Buscar si ya existe un secreto con esta clave para este tenant
+                var existingSecret = await _context.Secrets
+                    .FirstOrDefaultAsync(s => s.Key == key &&
+                                            s.TenantId == tenantId);
 
-        public async Task<SecretModel> SaveSecretAsync(SecretModel secret)
-        {
-            try
-            {
-                var existing = await _context.Secrets
-                    .FirstOrDefaultAsync(s =>
-                        s.Key == secret.Key &&
-                        s.TenantId == secret.TenantId &&
-                        s.UserId == secret.UserId);
-
-                if (existing != null)
+                if (existingSecret != null)
                 {
-                    existing.EncryptedValue = secret.EncryptedValue;
-                    existing.Description = secret.Description;
-                    existing.ExpirationDate = secret.ExpirationDate;
-                    existing.IsEncrypted = secret.IsEncrypted;
-                    existing.UpdatedAt = DateTime.UtcNow;
-                    _context.Secrets.Update(existing);
+                    // Actualizar el secreto existente
+                    _logger.LogInformation(
+                        "Actualizando secreto existente - Key: {Key}, TenantId: {TenantId}",
+                        key, tenantId);
+
+                    existingSecret.Value = value;
+                    existingSecret.Description = description;
+                    existingSecret.UpdatedAt = DateTime.UtcNow;
+
+                    _context.Secrets.Update(existingSecret);
                 }
                 else
                 {
-                    await _context.Secrets.AddAsync(secret);
+                    // Crear un nuevo secreto
+                    _logger.LogInformation(
+                        "Creando nuevo secreto - Key: {Key}, TenantId: {TenantId}",
+                        key, tenantId);
+
+                    var newSecret = new SecretModel
+                    {
+                        Key = key,
+                        Value = value,
+                        TenantId = tenantId,
+                        Description = description,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _context.Secrets.AddAsync(newSecret);
                 }
 
                 await _context.SaveChangesAsync();
-                return existing ?? secret;
+
+                _logger.LogInformation(
+                    "Secreto guardado exitosamente - Key: {Key}, TenantId: {TenantId}",
+                    key, tenantId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving secret {Key}", secret.Key);
+                _logger.LogError(ex,
+                    "Error guardando secreto - Key: {Key}, TenantId: {TenantId}",
+                    key, tenantId);
                 throw;
             }
         }
 
-        public async Task<bool> DeleteSecretAsync(long id, long tenantId)
+        /// <summary>
+        /// Desactiva un secreto específico para un tenant.
+        /// </summary>
+        public async Task DeactivateSecretAsync(string key, long tenantId)
         {
             try
             {
                 var secret = await _context.Secrets
-                    .FirstOrDefaultAsync(s => s.ID == id && s.TenantId == tenantId);
+                    .FirstOrDefaultAsync(s => s.Key == key &&
+                                            s.TenantId == tenantId);
 
-                if (secret == null) return false;
+                if (secret != null)
+                {
+                    secret.IsActive = false;
+                    secret.UpdatedAt = DateTime.UtcNow;
 
-                secret.IsActive = false;
-                secret.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-                return true;
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "Secreto desactivado - Key: {Key}, TenantId: {TenantId}",
+                        key, tenantId);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "No se encontró secreto para desactivar - Key: {Key}, TenantId: {TenantId}",
+                        key, tenantId);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting secret {Id}", id);
+                _logger.LogError(ex,
+                    "Error desactivando secreto - Key: {Key}, TenantId: {TenantId}",
+                    key, tenantId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todos los secretos activos para un tenant específico.
+        /// </summary>
+        public async Task<List<SecretModel>> GetAllSecretsForTenantAsync(long tenantId)
+        {
+            try
+            {
+                return await _context.Secrets
+                    .Where(s => s.TenantId == tenantId &&
+                               s.IsActive)
+                    .OrderBy(s => s.Key)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error obteniendo secretos para tenant {TenantId}",
+                    tenantId);
                 throw;
             }
         }

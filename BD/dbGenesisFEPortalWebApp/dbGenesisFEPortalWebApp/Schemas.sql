@@ -197,49 +197,71 @@ CREATE TABLE Audit.AccessLog (
 /************************************/
 /* Tablas de Configuración          */
 /************************************/
-CREATE TABLE Security.Secrets
+CREATE TABLE [Security].[Secrets]
 (
-    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
-    TenantId BIGINT NOT NULL,
-    UserId BIGINT NULL,
+    -- Columna de identidad principal
+    [ID] BIGINT IDENTITY(1,1) PRIMARY KEY,
+
+    -- ID del tenant al que pertenece el secreto
+    [TenantId] BIGINT NOT NULL,
+
+    -- Clave para identificar el tipo de secreto (por ejemplo, 'JWT_SECRET')
     [Key] NVARCHAR(100) NOT NULL,
-    EncryptedValue NVARCHAR(MAX) NOT NULL,
-    Description NVARCHAR(500),
-    ExpirationDate DATETIME NULL,
-    IsEncrypted BIT DEFAULT 1,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME NULL,
-    CONSTRAINT FK_Secrets_Tenants FOREIGN KEY (TenantId) 
-        REFERENCES Core.Tenants(ID),
-    CONSTRAINT FK_Secrets_Users FOREIGN KEY (UserId) 
-        REFERENCES Security.Users(ID),
-    CONSTRAINT UQ_Secrets_TenantKey UNIQUE (TenantId, [Key], UserId)
-);
 
--- Índices para mejorar el rendimiento
-CREATE INDEX IX_Secrets_TenantId ON Security.Secrets(TenantId);
-CREATE INDEX IX_Secrets_UserId ON Security.Secrets(UserId);
-CREATE INDEX IX_Secrets_Key ON Security.Secrets([Key]);
+    -- Valor del secreto
+    [Value] NVARCHAR(MAX) NOT NULL,
 
--- Insertar secreto JWT para el tenant del sistema
-INSERT INTO Security.Secrets (
-    TenantId,
-    [Key],
-    EncryptedValue,
-    Description,
-    IsEncrypted,
-    IsActive
+    -- Descripción opcional del secreto
+    [Description] NVARCHAR(500) NULL,
+
+    -- Indica si el secreto está activo
+    [IsActive] BIT NOT NULL DEFAULT(1),
+
+    -- Campos de auditoría
+    [CreatedAt] DATETIME NOT NULL DEFAULT(GETUTCDATE()),
+    [UpdatedAt] DATETIME NULL,
+
+    -- Restricción de clave foránea para asegurar que el TenantId existe
+    CONSTRAINT [FK_Secrets_Tenants] FOREIGN KEY ([TenantId]) 
+        REFERENCES [Core].[Tenants] ([ID]),
+
+    -- Restricción única para evitar duplicados de Key por Tenant
+    CONSTRAINT [UQ_Secrets_TenantKey] UNIQUE ([TenantId], [Key])
+)
+GO
+
+-- Crear índices para mejorar el rendimiento
+CREATE NONCLUSTERED INDEX [IX_Secrets_TenantId] ON [Security].[Secrets] ([TenantId])
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Secrets_Key] ON [Security].[Secrets] ([Key])
+GO
+
+INSERT INTO [Security].[Secrets] (
+    [TenantId], 
+    [Key], 
+    [Value], 
+    [Description], 
+    [IsActive], 
+    [CreatedAt]
 )
 SELECT 
-    t.ID,
-    'JWT_SECRET',
-    'MySuperSecret12k3jioasd8o12k3joiajsdij1l2kj3!!!!1k;lajskdjalkdj1sdlkj1ndas123qq', -- Este valor será encriptado por la aplicación
-    'JWT signing key for authentication',
-    0, -- No encriptado inicialmente
-    1  -- Activo
-FROM Core.Tenants t
-WHERE t.Name = 'Sistema';
+    t.ID as TenantId,
+    'JWT_SECRET' as [Key],
+    'MySuperSecret12k3jioasd8o12k3joiajsdij1l2kj3!!!!1k;lajskdjalkdj1sdlkj1ndas123qq' as [Value],
+    'JWT signing key for tenant authentication' as [Description],
+    1 as [IsActive],
+    GETUTCDATE() as [CreatedAt]
+FROM [Core].[Tenants] t
+WHERE t.IsActive = 1
+    AND NOT EXISTS (
+        SELECT 1 
+        FROM [Security].[Secrets] s 
+        WHERE s.TenantId = t.ID 
+        AND s.[Key] = 'JWT_SECRET'
+    )
+GO
+
 
 /************************************/
 /* Índices                         */

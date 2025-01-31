@@ -28,6 +28,12 @@
           <AssociatedConnUserName>seth</AssociatedConnUserName>
           <FullPath>DatosIniciales.sql</FullPath>
         </FileNode>
+        <FileNode Name="Otros.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName>seth</AssociatedConnUserName>
+          <FullPath>Otros.sql</FullPath>
+        </FileNode>
         <FileNode Name="Schemas.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
