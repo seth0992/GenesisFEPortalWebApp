@@ -18,26 +18,24 @@ public class ApiClient(HttpClient httpClient,
 
     public async Task SetAuthorizationHeader()
     {
-        var session = await localStorage.GetAsync<LoginResponseModel>("sessionState");
-        if (session.Value != null)
+        try
         {
-            if (session.Value.TokenExpired < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+            var sessionResult = await localStorage.GetAsync<LoginResponseModel>("sessionState");
+            var session = sessionResult.Success ? sessionResult.Value : null;
+
+            if (session == null || string.IsNullOrEmpty(session.Token))
             {
-                var newToken = await RefreshToken(session.Value.RefreshToken);
-                if (newToken != null)
-                {
-                    await ((CustomAuthStateProvider)authStateProvider)
-                        .MarkUserAsAuthenticated(newToken);
-                }
-                else
-                {
-                    await ((CustomAuthStateProvider)authStateProvider).MarkUserAsLoggedOut();
-                    navigationManager.NavigateTo("/login");
-                }
+                throw new Exception("No session found");
             }
 
+            // Agregar el token a los headers
             httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", session.Value.Token);
+                new AuthenticationHeaderValue("Bearer", session.Token);
+        }
+        catch (Exception)
+        {
+            await ((CustomAuthStateProvider)authStateProvider).MarkUserAsLoggedOut();
+            navigationManager.NavigateTo("/login");
         }
     }
 

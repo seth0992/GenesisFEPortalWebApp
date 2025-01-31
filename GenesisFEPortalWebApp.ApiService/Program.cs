@@ -11,6 +11,7 @@ using GenesisFEPortalWebApp.BL.Cache.Monitors;
 using GenesisFEPortalWebApp.BL.Cache;
 using GenesisFEPortalWebApp.BL.Cache.Configuration;
 using System.Text;
+using GenesisFEPortalWebApp.ApiService.Authentication;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,6 +66,10 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 
+
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+
 builder.Services.AddHttpContextAccessor();
 
 // Repositories
@@ -90,6 +95,9 @@ builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<ISecretRepository, SecretRepository>();
 builder.Services.AddScoped<ISecretService, SecretService>();
 
+// Registrar el manejador de eventos personalizado
+builder.Services.AddScoped<TenantJwtBearerEvents>();
+
 // Actualizar el registro del servicio de tokens
 builder.Services.AddScoped<ITokenService, TokenService>();
 
@@ -105,6 +113,27 @@ builder.Services.AddScoped<ICacheService, MemoryCacheService>();
 builder.Services.AddScoped<CatalogChangeMonitor>();
 
 // JWT Configuration
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+//}).AddJwtBearer(options =>
+//{
+//    options.SaveToken = true;
+//    options.RequireHttpsMetadata = false;
+//    options.TokenValidationParameters = new TokenValidationParameters()
+//    {
+//        ValidateIssuer = true,
+//        ValidateAudience = true,
+//        ValidAudience = builder.Configuration["JWT:ValidAudience"],
+//        ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
+//        ClockSkew = TimeSpan.Zero,
+//        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]!))
+//    };
+//});
+
+// Agregar autenticación JWT
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -112,19 +141,42 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
+    // Configuración básica inicial
+    var jwtConfig = builder.Configuration.GetSection("JWT");
+    var key = Encoding.UTF8.GetBytes(jwtConfig["Secret"]!);
+
     options.SaveToken = true;
     options.RequireHttpsMetadata = false;
-    options.TokenValidationParameters = new TokenValidationParameters()
+    options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidAudience = builder.Configuration["JWT:ValidAudience"],
-        ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
         ClockSkew = TimeSpan.Zero,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]!))
+        ValidIssuer = jwtConfig["ValidIssuer"],
+        ValidAudience = jwtConfig["ValidAudience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
+
+    // Agregar logging para diagnóstico
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Token validado exitosamente");
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILogger<Program>>();
+            logger.LogError("Fallo de autenticación: {Error}", context.Exception.Message);
+            return Task.CompletedTask;
+        }
     };
 });
-
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

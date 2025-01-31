@@ -61,18 +61,52 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         {
             try
             {
-                return await _context.Secrets
-                    .Where(s =>
-                        s.Key == key &&
-                        s.TenantId == tenantId &&
-                        s.UserId == userId &&
-                        s.IsActive &&
-                        (!s.ExpirationDate.HasValue || s.ExpirationDate > DateTime.UtcNow))
-                    .FirstOrDefaultAsync();
+                _logger.LogInformation(
+                    "Buscando secreto - Key: {Key}, TenantId: {TenantId}",
+                    key, tenantId);
+
+                // Construimos la consulta base
+                var query = _context.Secrets
+                    .Where(s => s.Key == key &&
+                               s.TenantId == tenantId &&
+                               s.UserId == userId &&
+                               s.IsActive);
+
+                // Verificamos la expiración si existe
+                query = query.Where(s => !s.ExpirationDate.HasValue ||
+                                       s.ExpirationDate > DateTime.UtcNow);
+
+                var secret = await query.FirstOrDefaultAsync();
+
+                if (secret != null)
+                {
+                    _logger.LogInformation("Secreto encontrado para tenant {TenantId}", tenantId);
+
+                    // Log detallado del secreto encontrado
+                    _logger.LogDebug("Detalles del secreto encontrado: " +
+                        "ID: {ID}, " +
+                        "TenantId: {TenantId}, " +
+                        "IsEncrypted: {IsEncrypted}, " +
+                        "ValueLength: {ValueLength}",
+                        secret.ID,
+                        secret.TenantId,
+                        secret.IsEncrypted,
+                        secret.EncryptedValue?.Length ?? 0);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "No se encontró secreto para Key: {Key}, TenantId: {TenantId}",
+                        key, tenantId);
+                }
+
+                return secret;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting secret {Key} for tenant {TenantId}", key, tenantId);
+                _logger.LogError(ex,
+                    "Error buscando secreto - Key: {Key}, TenantId: {TenantId}",
+                    key, tenantId);
                 throw;
             }
         }

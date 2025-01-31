@@ -66,52 +66,43 @@ namespace GenesisFEPortalWebApp.BL.Services
         {
             try
             {
-                var jwtSecret = await _secretService.GetSecretValueAsync("JWT_SECRET", user.TenantId);
-                if (string.IsNullOrEmpty(jwtSecret))
-                {
-                    throw new InvalidOperationException($"JWT secret not configured for tenant {user.TenantId}");
-                }
+                var jwtConfig = _configuration.GetSection("JWT");
+                var key = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtConfig["Secret"]!));
 
-                // Asegurar que la clave tenga el tamaño correcto
-                var keyBytes = Convert.FromBase64String(jwtSecret);
-                if (keyBytes.Length < 32) // 256 bits
-                {
-                    throw new InvalidOperationException("JWT secret key is too short");
-                }
+                var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                var key = new byte[32];
-                Buffer.BlockCopy(keyBytes, 0, key, 0, 32);
+                var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.ID.ToString()),
+                new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                new(ClaimTypes.Email, user.Email),
+                new("TenantId", user.TenantId.ToString()),
+                new(ClaimTypes.Role, user.Role.Name)
+            };
+
+                var token = new JwtSecurityToken(
+                    issuer: jwtConfig["ValidIssuer"],
+                    audience: jwtConfig["ValidAudience"],
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddHours(1),
+                    signingCredentials: credentials
+                );
 
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var claims = new List<Claim>
-{
-    new(ClaimTypes.NameIdentifier, user.ID.ToString()),
-    new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"), // Agregamos el nombre completo
-    new(ClaimTypes.Email, user.Email),
-    new("TenantId", user.TenantId.ToString()),
-    new(ClaimTypes.Role, user.Role.Name)
-};
-
-                var tokenDescriptor = new SecurityTokenDescriptor
-                {
-                    Subject = new ClaimsIdentity(claims),
-                    Expires = DateTime.UtcNow.AddHours(1),
-                    SigningCredentials = new SigningCredentials(
-                        new SymmetricSecurityKey(key),
-                        SecurityAlgorithms.HmacSha256Signature)
-                };
-
-                var token = tokenHandler.CreateToken(tokenDescriptor);
                 var refreshToken = GenerateRefreshTokenString();
+
+                _logger.LogInformation("Token generado exitosamente para usuario {UserId}", user.ID);
 
                 return (tokenHandler.WriteToken(token), refreshToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating tokens for user {UserId}", user.ID);
+                _logger.LogError(ex, "Error generando tokens para usuario {UserId}", user.ID);
                 throw;
             }
         }
+
         public async Task<(string NewToken, string NewRefreshToken)?> RefreshTokenAsync(string token, string refreshToken)
         {
             try
@@ -171,40 +162,58 @@ namespace GenesisFEPortalWebApp.BL.Services
         {
             try
             {
-                var jwtSecret = await _secretService.GetSecretValueAsync("JWT_SECRET");
-                if (string.IsNullOrEmpty(jwtSecret))
+                // Extraer el TenantId del token
+                var handler = new JwtSecurityTokenHandler();
+                var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+
+                // Obtener el TenantId de los claims
+                var tenantIdClaim = jsonToken?.Claims
+                    .FirstOrDefault(claim => claim.Type == "TenantId");
+
+                if (tenantIdClaim == null)
                 {
-                    throw new InvalidOperationException("JWT secret not configured");
+                    _logger.LogWarning("No se encontró el TenantId en el token");
+                    return null;
                 }
 
+                long tenantId;
+                if (!long.TryParse(tenantIdClaim.Value, out tenantId))
+                {
+                    _logger.LogWarning("No se pudo parsear el TenantId: {TenantId}", tenantIdClaim.Value);
+                    return null;
+                }
+
+                // Obtener el secreto específico del tenant
+                var jwtSecret = await _secretService.GetSecretValueAsync("JWT_SECRET", tenantId);
+
+                if (string.IsNullOrEmpty(jwtSecret))
+                {
+                    _logger.LogError("No se encontró el secreto JWT para el tenant {TenantId}", tenantId);
+                    throw new InvalidOperationException($"JWT secret not configured for tenant {tenantId}");
+                }
+
+                // Configurar parámetros de validación
                 var tokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
                     ValidateIssuer = false,
                     ValidateAudience = false,
-                    ValidateLifetime = false
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
                 };
 
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
-
-                if (securityToken is not JwtSecurityToken jwtSecurityToken ||
-                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,
-                    StringComparison.InvariantCultureIgnoreCase))
-                {
-                    throw new SecurityTokenException("Invalid token");
-                }
+                // Validar token
+                var principal = handler.ValidateToken(token, tokenValidationParameters, out _);
 
                 return principal;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error validating token");
+                _logger.LogError(ex, "Error al validar el token para el tenant");
                 return null;
             }
         }
-
         private static string GenerateRefreshTokenString()
         {
             var randomNumber = new byte[32];

@@ -2,6 +2,7 @@
 using GenesisFEPortalWebApp.Models.Entities.Security;
 using GenesisFEPortalWebApp.Models.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -89,23 +90,73 @@ namespace GenesisFEPortalWebApp.BL.Services
         {
             try
             {
-                _logger.LogDebug("Obteniendo secreto {Key} para tenant {TenantId}", key, tenantId);
+                _logger.LogInformation("Buscando secreto JWT para tenant {TenantId}", tenantId);
 
                 var secret = await _secretRepository.GetSecretAsync(key, tenantId);
                 if (secret == null)
                 {
-                    _logger.LogWarning("Secreto {Key} no encontrado para tenant {TenantId}", key, tenantId);
+                    _logger.LogWarning("No se encontró secreto para tenant {TenantId}", tenantId);
                     return null;
                 }
 
-                return secret.IsEncrypted
-                    ? _encryptionService.Decrypt(secret.EncryptedValue, key)
-                    : secret.EncryptedValue;
+                _logger.LogInformation("Secreto encontrado para tenant {TenantId}", tenantId);
+
+                string decryptedValue;
+                if (secret.IsEncrypted)
+                {
+                    try
+                    {
+                        // Usar una clave de encriptación consistente
+                        var encryptionKey = $"{key}_{tenantId}";
+                        decryptedValue = _encryptionService.Decrypt(secret.EncryptedValue, encryptionKey);
+
+                        _logger.LogInformation("Secreto desencriptado exitosamente");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error desencriptando el secreto. Intentando usar el valor sin desencriptar");
+                        decryptedValue = secret.EncryptedValue;
+                    }
+                }
+                else
+                {
+                    decryptedValue = secret.EncryptedValue;
+                }
+
+                // Validar que el valor desencriptado sea una clave JWT válida
+                if (!IsValidJwtKey(decryptedValue))
+                {
+                    _logger.LogError("El valor del secreto no es una clave JWT válida");
+                    return null;
+                }
+
+                return decryptedValue;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving secret {Key} for tenant {TenantId}", key, tenantId);
+                _logger.LogError(ex, "Error obteniendo secreto {Key} para tenant {TenantId}", key, tenantId);
                 throw;
+            }
+        }
+
+        private bool IsValidJwtKey(string key)
+        {
+            try
+            {
+                // La clave JWT debe tener al menos 256 bits (32 bytes)
+                var keyBytes = Encoding.UTF8.GetBytes(key);
+                if (keyBytes.Length < 32)
+                {
+                    return false;
+                }
+
+                // Intentar crear una clave de firma
+                new SymmetricSecurityKey(keyBytes);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 
