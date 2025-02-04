@@ -34,6 +34,21 @@ CREATE TABLE Core.Tenants (
     UpdatedAt DATETIME
 );
 
+-- Tabla para cuotas de tenant
+CREATE TABLE Core.TenantQuotas
+(
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    TenantId BIGINT NOT NULL,
+    ResourceType NVARCHAR(50) NOT NULL,
+    MaxLimit INT NOT NULL,
+    CurrentUsage INT NOT NULL DEFAULT 0,
+    ResetPeriod NVARCHAR(20) NOT NULL, -- 'Daily', 'Monthly', 'Yearly'
+    LastResetDate DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    IsActive BIT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_TenantQuotas_Tenants FOREIGN KEY (TenantId) 
+        REFERENCES Core.Tenants(ID)
+);
+
 /************************************/
 /* Tablas de Seguridad             */
 /************************************/
@@ -101,6 +116,32 @@ CREATE TABLE Security.SecurityLogs
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL
 );
+
+-- Crear tabla de auditoría
+CREATE TABLE Security.TenantAuditLogs
+(
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    TenantId BIGINT NOT NULL,
+    UserId BIGINT NOT NULL,
+    Action NVARCHAR(100) NOT NULL,
+    Resource NVARCHAR(255) NOT NULL,
+    IpAddress NVARCHAR(50),
+    UserAgent NVARCHAR(500),
+    AdditionalData NVARCHAR(MAX),
+    Timestamp DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT FK_TenantAuditLogs_Tenants FOREIGN KEY (TenantId) 
+        REFERENCES Core.Tenants(ID),
+    CONSTRAINT FK_TenantAuditLogs_Users FOREIGN KEY (UserId) 
+        REFERENCES Security.Users(ID)
+);
+
+-- Crear índices para mejor rendimiento
+CREATE NONCLUSTERED INDEX IX_TenantAuditLogs_TenantId 
+    ON Security.TenantAuditLogs(TenantId);
+CREATE NONCLUSTERED INDEX IX_TenantAuditLogs_Timestamp 
+    ON Security.TenantAuditLogs(Timestamp);
+
+
 
 /************************************/
 /* Tablas de Catálogos             */
