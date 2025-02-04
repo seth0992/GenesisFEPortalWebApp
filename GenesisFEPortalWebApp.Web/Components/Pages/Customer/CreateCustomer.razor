@@ -1,4 +1,4 @@
-﻿@* @page "/customer/create"
+﻿@page "/customer/create"
 
 @using GenesisFEPortalWebApp.Models.Entities.Core
 <h3>CreateCustomer</h3>
@@ -166,58 +166,3 @@
 
 
 </RadzenTemplateForm>
- *@
-@page "/customer/create"
-@using GenesisFEPortalWebApp.Models.Entities.Core
-@using GenesisFEPortalWebApp.Models.Models
-@using GenesisFEPortalWebApp.Models.Models.Customer
-@layout MainLayout
-@inject ApiClient ApiClient
-@inject NavigationManager NavigationManager
-@inject IToastService ToastService
-
-<PageTitle>Crear Cliente</PageTitle>
-
-<RadzenStack Gap="1rem">
-    <RadzenText TextStyle="TextStyle.H3">Crear Nuevo Cliente</RadzenText>
-    
-    <CustomerForm Model="@formModel"
-                 OnSubmit="@HandleSubmit"
-                 OnCancelClick="@HandleCancel" />
-</RadzenStack>
-
-@code {
-    private CustomerFormModel formModel = new();
-
-    private async Task HandleSubmit(CustomerFormModel model)
-    {
-        try
-        {
-            // Usamos el método de extensión para la conversión
-            var customerModel = model.ToEntity();
-
-            var response = await ApiClient.PostAsync<BaseResponseModel, CustomerModel>(
-                "/api/Customer",
-                customerModel);
-
-            if (response?.Success == true)
-            {
-                ToastService.ShowSuccess("Cliente creado exitosamente");
-                NavigationManager.NavigateTo("/customer");
-            }
-            else
-            {
-                ToastService.ShowError(response?.ErrorMessage ?? "Error al crear el cliente");
-            }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError("Error al procesar la solicitud");
-            Console.Error.WriteLine(ex);
-        }
-    }
-    private void HandleCancel()
-    {
-        NavigationManager.NavigateTo("/customer");
-    }
-}
