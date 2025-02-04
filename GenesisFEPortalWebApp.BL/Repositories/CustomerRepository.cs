@@ -13,6 +13,8 @@ namespace GenesisFEPortalWebApp.BL.Repositories
     {
         // Método específico para obtener clientes por tenant
         Task<List<CustomerModel>> GetCustomersByTenantIdAsync(long tenantId);
+
+        Task<CustomerModel> CreateCustomerAsync(CustomerModel customer);
     }
 
     public class CustomerRepository : ICustomerRepository
@@ -22,6 +24,36 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         public CustomerRepository(AppDbContext context)
         {
             _context = context;
+        }
+
+        public async Task<CustomerModel> CreateCustomerAsync(CustomerModel customer)
+        {
+            try
+            {
+                // Basic validation
+                if (customer == null)
+                {
+                    throw new ArgumentNullException(nameof(customer), "Customer cannot be null");
+                }
+
+                if (customer.TenantId == 0)
+                {
+                    throw new InvalidOperationException("TenantId must be set before creating a customer");
+                }
+
+                // Add the customer to the context and save changes
+                await _context.Customers.AddAsync(customer);
+                await _context.SaveChangesAsync();
+
+                // Return the created customer with its new ID
+                return customer;
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (assuming you have logging set up)
+                // _logger.LogError(ex, "Error creating customer");
+                throw; // Re-throw to allow caller to handle
+            }
         }
 
         public async Task<List<CustomerModel>> GetCustomersByTenantIdAsync(long tenantId)

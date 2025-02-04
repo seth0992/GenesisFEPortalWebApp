@@ -1,8 +1,12 @@
 ﻿using GenesisFEPortalWebApp.BL.Services;
+using GenesisFEPortalWebApp.Models.Entities.Core;
 using GenesisFEPortalWebApp.Models.Models;
+using GenesisFEPortalWebApp.Models.Models.Customer;
+using GenesisFEPortalWebApp.Models.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace GenesisFEPortalWebApp.ApiService.Controllers
 {
@@ -62,6 +66,50 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
                 });
             }
         }
+
+        [HttpPost]
+        public async Task<ActionResult<BaseResponseModel>> CreateCustomer([FromBody] CreateCustomerDto customerDto)
+        {
+            try
+            {
+                // Delegate mapping and creation to the service
+                var createdCustomer = await _customerService.CreateCustomerAsync(customerDto);
+
+                return Ok(new BaseResponseModel
+                {
+                    Success = true,
+                    Data = createdCustomer
+                });
+            }
+            catch (ValidationException validationEx)
+            {
+                // Handle validation-specific errors
+                return BadRequest(new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = validationEx.Message
+                });
+            }
+            catch (InvalidOperationException opEx)
+            {
+                // Handle tenant-related errors
+                return Unauthorized(new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = opEx.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating customer");
+                return StatusCode(500, new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = "An unexpected error occurred while creating the customer"
+                });
+            }
+        }
+
     }
 }
 

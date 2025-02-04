@@ -25,6 +25,7 @@ namespace GenesisFEPortalWebApp.Models.Entities.Core
         public string? Neighborhood { get; set; }
         public int? DistrictId { get; set; }
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public virtual TenantModel Tenant { get; set; } = null!;
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public virtual IdentificationTypeModel IdentificationType { get; set; } = null!;
