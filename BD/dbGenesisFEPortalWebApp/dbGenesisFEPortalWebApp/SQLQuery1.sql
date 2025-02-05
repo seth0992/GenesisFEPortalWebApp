@@ -2,6 +2,8 @@ select * from core.Tenants
 select * from Security.Users
 select * from Security.Secrets
 
+select * from core.Customers
+
 
 SELECT * FROM Security.Secrets 
 WHERE TenantId = 4 AND [Key] = 'JWT_SECRET';

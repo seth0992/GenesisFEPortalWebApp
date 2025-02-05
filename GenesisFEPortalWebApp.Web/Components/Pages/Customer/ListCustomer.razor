@@ -1,4 +1,4 @@
-﻿@page "/customer"
+﻿@* @page "/customer"
 @using GenesisFEPortalWebApp.Models.Entities.Core
 
 <h3>Clientes</h3>
@@ -42,6 +42,139 @@
                     </Columns>
                 </RadzenDataGrid>
             </RadzenStack>
+        </RadzenStack>
+    }
+</div>
+*@
+@*  
+@inject IToastService ToastService
+@page "/customer"
+@using GenesisFEPortalWebApp.Models.Entities.Core
+
+<RadzenDialog /> <!-- Necesario para los diálogos -->
+
+<h3>Clientes</h3>
+<div class="container-fluid">
+    @if (customers == null)
+    {
+        <RadzenProgressBarCircular ShowValue="true" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large">
+            <Template>Espere</Template>
+        </RadzenProgressBarCircular>
+    }
+    else
+    {
+        <RadzenStack Orientation="Orientation.Vertical">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.End">
+                <a class="btn btn-primary" href="/customer/create">Agregar Cliente</a>
+            </RadzenStack>
+
+            <RadzenStack>
+                <RadzenDataGrid @ref="grid" AllowFiltering="true" AllowColumnResize="true"
+                                AllowAlternatingRows="false" FilterMode="FilterMode.Advanced"
+                                PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left"
+                                Data="@customers" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or"
+                                SelectionMode="DataGridSelectionMode.Single" TItem="CustomerModel"
+                                Style="max-width:inherit">
+                    <Columns>
+                        <!-- ... columnas existentes ... -->
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.ID)" Filterable="false" Title="ID" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.CustomerName)" Title="Nombre Cliente" Width="160px" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.CommercialName)" Title="Nombre Comercial" Width="160px" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.Identification)" Title="Documento" Width="200px" />
+                        <RadzenDataGridColumn Property="IdentificationType.Description" Title="Tipo de documento" Width="120px" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.Address)" Title="Dirección" FormatString="{0:d}" Width="160px" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.Email)" Title="Email" FormatString="{0:d}" Width="160px" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.Phone)" Title="Phone" Width="200px" />
+                        <RadzenDataGridColumn Property="@nameof(CustomerModel.PhoneCode)" Title="Code" Width="160px" />
+
+                        <RadzenDataGridColumn Width="120px" Property="ID" Title="Acciones" Frozen="true" Filterable="false">
+                            <Template Context="data">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenButton ButtonStyle="ButtonStyle.Info"
+                                                  Variant="Variant.Flat"
+                                                  Shade="Shade.Lighter"
+                                                  Icon="edit"
+                                                  Size="ButtonSize.Medium"
+                                                  Click="@(() => OnClick("update", data.ID))"
+                                                  ToolTip="Editar" />
+
+                                    <RadzenButton ButtonStyle="ButtonStyle.Danger"
+                                                  Variant="Variant.Flat"
+                                                  Shade="Shade.Lighter"
+                                                  Icon="delete"
+                                                  Size="ButtonSize.Medium"
+                                                  Click="@(() => HandleDelete(data))"
+                                                  ToolTip="Eliminar" />
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenStack>
+        </RadzenStack>
+    }
+</div>
+
+ *@
+                                            
+@page "/customer"
+@using GenesisFEPortalWebApp.Models.Entities.Core
+
+<RadzenDialog />
+
+<h3>Clientes</h3>
+<div class="container-fluid">
+    @if (customers == null)
+    {
+        <RadzenProgressBarCircular ShowValue="true" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large">
+            <Template>Espere</Template>
+        </RadzenProgressBarCircular>
+    }
+    else
+    {
+        <RadzenStack Orientation="Orientation.Vertical">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.End">
+                <RadzenButton Text="Agregar Cliente"
+                              Icon="add"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Click="@(() => NavigateToRoute("create"))" />
+            </RadzenStack>
+
+            <RadzenDataGrid @ref="grid"
+                            Data="@customers.ToList()"
+                            AllowFiltering="true"
+                            AllowColumnResize="true"
+                            FilterMode="FilterMode.Advanced"
+                            PageSize="10"
+                            AllowPaging="true">
+                <Columns>
+                    <RadzenDataGridColumn TItem="CustomerModel" Property="CustomerName" Title="Nombre" />
+                    <RadzenDataGridColumn TItem="CustomerModel" Property="Identification" Title="Identificación" />
+                    <RadzenDataGridColumn TItem="CustomerModel" Property="Email" Title="Email" />
+                    <RadzenDataGridColumn TItem="CustomerModel" Property="Phone" Title="Teléfono" />
+                    <RadzenDataGridColumn TItem="CustomerModel" Width="120px" Title="Acciones" Filterable="false">
+                        <Template Context="customer">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenButton ButtonStyle="ButtonStyle.Info"
+                                              Variant="Variant.Flat"
+                                              Shade="Shade.Lighter"
+                                              Icon="edit"
+                                              Size="ButtonSize.Medium"
+                                              Click="@(() => NavigateToRoute($"update/{customer.ID}"))"
+                                              ToolTip="Editar" />
+
+                                <RadzenButton ButtonStyle="ButtonStyle.Danger"
+                                              Variant="Variant.Flat"
+                                              Shade="Shade.Lighter"
+                                              Icon="delete"
+                                              Size="ButtonSize.Medium"
+                                              Click="@(() => HandleDelete(customer))"
+                                              ToolTip="Eliminar" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
         </RadzenStack>
     }
 </div>

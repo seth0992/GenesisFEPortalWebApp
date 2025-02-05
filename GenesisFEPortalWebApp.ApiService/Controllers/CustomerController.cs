@@ -110,6 +110,102 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
             }
         }
 
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<BaseResponseModel>> GetCustomerById(long id)
+        {
+            try
+            {
+                var customer = await _customerService.GetCustomerByIdAsync(id);
+                if (customer == null)
+                {
+                    return Ok(new BaseResponseModel
+                    {
+                        Success = false,
+                        ErrorMessage = "Cliente no encontrado"
+                    });
+                }
+
+                return Ok(new BaseResponseModel
+                {
+                    Success = true,
+                    Data = customer
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo cliente {CustomerId}", id);
+                return StatusCode(500, new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = "Error interno del servidor"
+                });
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<BaseResponseModel>> UpdateCustomer(long id, [FromBody] UpdateCustomerDto customerDto)
+        {
+            if (id != customerDto.ID)
+            {
+                return BadRequest(new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = "ID no coincide"
+                });
+            }
+
+            try
+            {
+                var updatedCustomer = await _customerService.UpdateCustomerAsync(customerDto);
+                return Ok(new BaseResponseModel
+                {
+                    Success = true,
+                    Data = updatedCustomer
+                });
+            }
+            catch (ValidationException vex)
+            {
+                return BadRequest(new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = vex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando cliente {CustomerId}", id);
+                return StatusCode(500, new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = "Error interno del servidor"
+                });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<BaseResponseModel>> DeleteCustomer(long id)
+        {
+            try
+            {
+                var result = await _customerService.DeleteCustomerAsync(id);
+                return Ok(new BaseResponseModel
+                {
+                    Success = result,
+                    ErrorMessage = result ? null : "No se pudo eliminar el cliente",
+                    Data = result  // Es importante incluir el resultado en Data
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando cliente {CustomerId}", id);
+                return StatusCode(500, new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = "Error interno del servidor"
+                });
+            }
+        }
     }
 }
 

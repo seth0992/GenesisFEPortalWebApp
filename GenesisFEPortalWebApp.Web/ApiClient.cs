@@ -52,13 +52,24 @@ public class ApiClient(HttpClient httpClient,
         return result ?? throw new InvalidOperationException("Received null response from the server.");
     }
 
+    /// <summary>
+    /// Realiza una petición POST asíncrona
+    /// </summary>
+    /// <typeparam name="T1">Tipo de retorno esperado. Puede ser:
+    /// - BaseResponseModel: Retorna la respuesta completa
+    /// - bool: Retorna el valor de Success
+    /// - otro tipo: Intenta deserializar desde Data
+    /// </typeparam>
+    /// <typeparam name="T2">Tipo del modelo a enviar</typeparam>
     public async Task<T1> PostAsync<T1, T2>(string path, T2 postModel)
     {
         await SetAuthorizationHeader();
         try
         {
+            // Realizamos la petición POST
             var response = await httpClient.PostAsJsonAsync(path, postModel);
 
+            // Caso especial para el login
             if (path.Contains("/api/auth/login"))
             {
                 return (T1)(object)await ProcessLoginResponse(response);
@@ -66,20 +77,53 @@ public class ApiClient(HttpClient httpClient,
 
             if (response != null && response.IsSuccessStatusCode)
             {
+                // Leemos el contenido de la respuesta
                 var jsonString = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Respuesta del servidor: {jsonString}"); // Para diagnóstico
+
+                // Deserializamos a BaseResponseModel
                 var baseResponse = JsonConvert.DeserializeObject<BaseResponseModel>(jsonString);
 
-                if (baseResponse != null && baseResponse.Success)
+                if (baseResponse != null)
                 {
-                    string dataJson = JsonConvert.SerializeObject(baseResponse.Data);
-                    return JsonConvert.DeserializeObject<T1>(dataJson)!;
-                }
-                else
-                {
-                    throw new ApplicationException(baseResponse?.ErrorMessage ?? "Error desconocido en la respuesta");
-                }
-            }
+                    // Si T1 es BaseResponseModel, devolvemos directamente
+                    if (typeof(T1) == typeof(BaseResponseModel))
+                    {
+                        return (T1)(object)baseResponse;
+                    }
 
+                    // Para otros tipos, intentamos deserializar el Data
+                    if (baseResponse.Success)
+                    {
+                        try
+                        {
+                            // Si Data es null, y T1 es un tipo por valor (como bool),
+                            // devolvemos el valor Success
+                            if (baseResponse.Data == null && typeof(T1).IsValueType)
+                            {
+                                return (T1)(object)baseResponse.Success;
+                            }
+
+                            // En otro caso, intentamos deserializar Data
+                            string dataJson = JsonConvert.SerializeObject(baseResponse.Data);
+                            var result = JsonConvert.DeserializeObject<T1>(dataJson);
+                            return result!;
+                        }
+                        catch (JsonSerializationException ex)
+                        {
+                            Console.WriteLine($"Error deserializando Data: {ex.Message}");
+                            // Si falla la deserialización y T1 es bool, devolvemos Success
+                            if (typeof(T1) == typeof(bool))
+                            {
+                                return (T1)(object)baseResponse.Success;
+                            }
+                            throw;
+                        }
+                    }
+                    throw new ApplicationException(baseResponse.ErrorMessage ?? "Error desconocido en la respuesta");
+                }
+                throw new ApplicationException("Respuesta nula del servidor");
+            }
             throw new HttpRequestException($"Error en la respuesta HTTP: {response?.StatusCode}");
         }
         catch (JsonSerializationException ex)
@@ -93,7 +137,6 @@ public class ApiClient(HttpClient httpClient,
             throw new HttpRequestException($"Error en la petición a {path}: {ex.Message}", ex);
         }
     }
-
     private async Task<LoginResponseModel> ProcessLoginResponse(HttpResponseMessage response)
     {
         try

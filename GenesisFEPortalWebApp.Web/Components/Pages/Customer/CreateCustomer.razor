@@ -1,168 +1,154 @@
 ﻿@page "/customer/create"
-
 @using GenesisFEPortalWebApp.Models.Entities.Core
-<h3>CreateCustomer</h3>
 
-<RadzenTemplateForm Data="@customer" Submit="@((CustomerModel args) => { Submit(args); })">
-    <RadzenStack Gap="1rem" class="rz-p-0 rz-p-lg-4">
+<RadzenStack Gap="1rem" Class="rz-p-4">
+    <RadzenText TextStyle="TextStyle.H3">Registrar Nuevo Cliente</RadzenText>
 
-        <RadzenRow>
-            <RadzenColumn Size="12">
-                <RadzenFieldset Text="Información del Cliente">
+    @if (!string.IsNullOrEmpty(identificationError))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="true" Variant="Variant.Flat">
+            @identificationError
+        </RadzenAlert>
+    }
 
-                    <RadzenRow>
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12">
-                                    <RadzenLabel Text="Tipo de Identificación:" Component="IdentificationType" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12">
-                                    <RadzenDropDown AllowClear="true" Placeholder="Selecciona el tipo" Data="@IdentificationTypes" Style="width: 100%;" TextProperty="Description" ValueProperty="ID" Name="IdentificationType" TValue="string" @bind-Value="customer.IdentificationTypeId"></RadzenDropDown>
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12">
-                                    <RadzenLabel Text="Número de identificación" Component="Identification" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12">
+    <RadzenTemplateForm TItem="CustomerModel" Data="@customer" Submit="@HandleValidSubmit">
+        <RadzenStack Gap="1rem">
+            <!-- Panel de Información de Identificación -->
+            <RadzenFieldset Text="Información de Identificación">
+                <RadzenRow Class="rz-mb-3">
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Tipo de Identificación" Variant="Variant.Filled">
+                            <RadzenDropDown @bind-Value="customer.IdentificationTypeId"
+                                            Data="@IdentificationTypes"
+                                            TextProperty="Description"
+                                            ValueProperty="ID"
+                                            Change="@(args => ValidateIdentification())"
+                                            Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
 
-                                    <RadzenTextBox Style="width: 100%" aria-label="Número de identificación" Name="Identification" @bind-Value="customer.Identification" />
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Número de Identificación" Variant="Variant.Filled">
+                            <RadzenTextBox @bind-Value="customer.Identification"
+                                           Change="@(args => ValidateIdentification())"
+                                           Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenFieldset>
 
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
+            <!-- Panel de Información General -->
+            <RadzenFieldset Text="Información General">
+                <RadzenRow Class="rz-mb-3">
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenFormField Text="Nombre Cliente" Variant="Variant.Filled">
+                            <RadzenTextBox @bind-Value="customer.CustomerName"
+                                           Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
 
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12">
-                                    <RadzenLabel Text="Nombre:" Component="CustomerName" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12">
-                                    <RadzenTextBox Style="width: 100%" aria-label="Nombre:" Name="CustomerName" @bind-Value="customer.CustomerName" />
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenFormField Text="Nombre Comercial" Variant="Variant.Filled">
+                            <RadzenTextBox @bind-Value="customer.CommercialName"
+                                           Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
 
+                <RadzenRow Class="rz-mb-3">
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenFormField Text="Correo Electrónico" Variant="Variant.Filled">
+                            <RadzenTextBox @bind-Value="customer.Email"
+                                           Type="email"
+                                           Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
 
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12">
-                                    <RadzenLabel Text="Nombre Comercial:" Component="CommercialName" />
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenFormField Text="Teléfono" Variant="Variant.Filled">
+                            <RadzenRow>
+                                <RadzenColumn Size="4">
+                                    <RadzenTextBox @bind-Value="customer.PhoneCode"
+                                                   Placeholder="Código"
+                                                   Class="w-100" />
                                 </RadzenColumn>
-                                <RadzenColumn Size="12">
-                                    <RadzenTextBox Style="width: 100%" aria-label="Nombre Comercial" Name="CommercialName" @bind-Value="customer.CommercialName" />
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12">
-                                    <RadzenLabel Text="Email:" Component="Email" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12">
-                                    <RadzenTextBox Name="Email" @bind-Value=@customer.Email Style="display: block; width: 100%;" />
-                                    <RadzenRequiredValidator Component="Email" Text="Email is required" Popup=@popup Style="position: absolute" />
-                                    <RadzenEmailValidator Component="Email" Text="Provide a valid email address" Popup=@popup Style="position: absolute" />
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Start">
-                                <RadzenColumn Size="12">
-                                    <RadzenLabel Text="Teléfono" Component="Phone" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12">
-                                    <RadzenStack Orientation="Orientation.Horizontal" Gap="4">
-                                        <RadzenTextBox Style="width: 20%" aria-label="Código" Name="Phone" @bind-Value="customer.PhoneCode" />
-                                        <RadzenTextBox Style="width: 80%" aria-label="Phone" @bind-Value="customer.Phone" />
-                                    </RadzenStack>
+                                <RadzenColumn Size="8">
+                                    <RadzenTextBox @bind-Value="customer.Phone"
+                                                   Placeholder="Número"
+                                                   Class="w-100" />
                                 </RadzenColumn>
                             </RadzenRow>
-                        </RadzenColumn>
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenFieldset>
 
-                    </RadzenRow>
+            <!-- Panel de Ubicación -->
+            <RadzenFieldset Text="Ubicación">
+                <RadzenRow Class="rz-mb-3">
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Provincia" Variant="Variant.Filled">
+                            <RadzenDropDown @bind-Value="ProvinceSelected"
+                                            Data="@Provinces"
+                                            TextProperty="ProvinceName"
+                                            ValueProperty="ProvinceID"
+                                            Change="@SearchCantonsOfProvinces"
+                                            Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
 
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Cantón" Variant="Variant.Filled">
+                            <RadzenDropDown @bind-Value="CantonSelected"
+                                            Data="@Cantons"
+                                            TextProperty="CantonName"
+                                            ValueProperty="CantonID"
+                                            Change="@SearchDistrictsOfCanton"
+                                            Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
 
-                </RadzenFieldset>
-            </RadzenColumn>
-        </RadzenRow>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Distrito" Variant="Variant.Filled">
+                            <RadzenDropDown @bind-Value="customer.DistrictId"
+                                            Data="@Districts"
+                                            TextProperty="DistrictName"
+                                            ValueProperty="DistrictID"
+                                            Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
 
-        <RadzenRow>
-            <RadzenColumn Size="12">
-                <RadzenFieldset Text="Dirección">
-                    <RadzenRow>
+                <RadzenRow>
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenFormField Text="Barrio" Variant="Variant.Filled">
+                            <RadzenTextBox @bind-Value="customer.Neighborhood"
+                                           Class="w-100" />
+                        </RadzenFormField>
+                    </RadzenColumn>
 
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenLabel Text="Provincia:" Component="Province" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12" SizeMD="8">
-                                    <RadzenDropDown AllowClear="true" Placeholder="Selecciona la provincia" Data="@Provinces" Style="width: 100%;" TextProperty="ProvinceName" ValueProperty="ProvinceID" Name="Province" TValue="int?" @bind-Value="ProvinceSelected" Change="SearchCantonsOfProvinces "></RadzenDropDown>
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenFormField Text="Dirección Exacta" Variant="Variant.Filled">
+                            <RadzenTextArea @bind-Value="customer.Address"
+                                            Class="w-100"
+                                            Rows="3" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenFieldset>
 
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenLabel Text="Cantón:" Component="Cantons" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12" SizeMD="8">
-                                    <RadzenDropDown AllowClear="true" Placeholder="Selecciona el Catón" Data="@Cantons" Style="width: 100%;" TextProperty="CantonName" ValueProperty="CantonID" Name="Cantons" TValue="int?" @bind-Value="CantonSelected" Change="SearchDistrictsOfCanton"></RadzenDropDown>
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenLabel Text="Distrito:" Component="DistrictID" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12" SizeMD="8">
-                                    <RadzenDropDown AllowClear="true" Placeholder="Selecciona el Distrito" Data="@Districts" Style="width: 100%;" TextProperty="DistrictName" ValueProperty="DistrictID" Name="Province" TValue="int?" @bind-Value="customer.DistrictId"></RadzenDropDown>
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenLabel Text="Barrio:" Component="Neighborhood" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12" SizeMD="8">
-                                    <RadzenTextBox Style="width: 100%" aria-label="Default TextBox" />
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-
-                        <RadzenColumn Size="12" SizeXS="12" SizeMD="4" SizeSM="6">
-                            <RadzenRow AlignItems="AlignItems.Center">
-                                <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenLabel Text="Otras Señas:" Component="OtherSignal" />
-                                </RadzenColumn>
-                                <RadzenColumn Size="12" SizeMD="8">
-                                    <RadzenTextBox Style="width: 100%" aria-label="Default TextBox" @bind-Value="customer.Address" />
-                                </RadzenColumn>
-                            </RadzenRow>
-                        </RadzenColumn>
-
-                    </RadzenRow>
-
-
-                </RadzenFieldset>
-            </RadzenColumn>
-        </RadzenRow>
-
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" class="rz-mt-8 rz-mb-4">
-            <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Save" />
-            <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" />
+            <!-- Botones de Acción -->
+            <RadzenStack Orientation="Orientation.Horizontal"
+                         JustifyContent="JustifyContent.End"
+                         Gap="1rem"
+                         Class="rz-mt-4">
+                <RadzenButton ButtonStyle="ButtonStyle.Light"
+                              Click="@(() => NavigationManager.NavigateTo("/customer"))"
+                              Text="Cancelar" />
+                <RadzenButton ButtonType="ButtonType.Submit"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Text="Guardar" />
+            </RadzenStack>
         </RadzenStack>
-
-    </RadzenStack>
-
-
-</RadzenTemplateForm>
+    </RadzenTemplateForm>
+</RadzenStack>

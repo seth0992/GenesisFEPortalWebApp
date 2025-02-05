@@ -2,8 +2,11 @@
 using GenesisFEPortalWebApp.Models.Entities.Catalog;
 using GenesisFEPortalWebApp.Models.Entities.Core;
 using GenesisFEPortalWebApp.Models.Models;
+using GenesisFEPortalWebApp.Models.Models.Customer;
+using GenesisFEPortalWebApp.Utilities;
 using Microsoft.AspNetCore.Components;
 using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
 
 namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
 {
@@ -12,103 +15,151 @@ namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
         [Inject]
         public required ApiClient ApiClient { get; set; }
         [Inject]
-        private IToastService toastService { get; set; } = default!;
+        private IToastService ToastService { get; set; } = default!;
         [Inject]
         private NavigationManager NavigationManager { get; set; } = default!;
-        public CustomerModel customer { get; set; } = new();
 
-        public List<ProvinceModel> Provinces { get; set; } = new();
-        public List<CantonModel> Cantons { get; set; } = new();
-        public List<DistrictModel> Districts { get; set; } = new();
-        public List<IdentificationTypeModel> IdentificationTypes { get; set; } = new();
-        public int? ProvinceSelected { get; set; } = null;
-        public int? CantonSelected { get; set; } = null;
-        bool popup;
+        private CustomerModel customer = new();
+        private string? identificationError;
+        private int? ProvinceSelected { get; set; }
+        private int? CantonSelected { get; set; }
+        private List<IdentificationTypeModel> IdentificationTypes { get; set; } = new();
+        private List<ProvinceModel> Provinces { get; set; } = new();
+        private List<CantonModel> Cantons { get; set; } = new();
+        private List<DistrictModel> Districts { get; set; } = new();
 
         protected override async Task OnInitializedAsync()
         {
-
-            await base.OnInitializedAsync();
-            await GetProvinces();
-            await GetIdentificationTypes();
+            await LoadCatalogs();
         }
-        public async Task Submit(CustomerModel Model)
+
+        private async Task HandleValidSubmit()
         {
-            customer.ID = 1;
-            var cu = new CustomerModel();
-
-            var res = await ApiClient.PostAsync<BaseResponseModel, CustomerModel>("/api/Customer", customer);
-            if (res != null && res.Success)
+            try
             {
-                toastService.ShowSuccess("El cliente se agrego correctamente.");
-                NavigationManager.NavigateTo("/customer");
+                if (!ValidateIdentification())
+                {
+                    return;
+                }
+
+                var createDto = new CreateCustomerDto
+                {
+                    CustomerName = customer.CustomerName,
+                    CommercialName = customer.CommercialName,
+                    Identification = customer.Identification,
+                    IdentificationTypeId = customer.IdentificationTypeId,
+                    Email = customer.Email,
+                    PhoneCode = customer.PhoneCode,
+                    Phone = customer.Phone,
+                    Address = customer.Address,
+                    Neighborhood = customer.Neighborhood,
+                    DistrictId = customer.DistrictId
+                };
+
+                var response = await ApiClient.PostAsync<BaseResponseModel, CreateCustomerDto>(
+                    "/api/Customer",
+                    createDto
+                );
+
+                if (response?.Success == true)
+                {
+                    ToastService.ShowSuccess("Cliente registrado exitosamente");
+                    await Task.Delay(1000);
+                    NavigationManager.NavigateTo("/customer");
+                }
+                else
+                {
+                    ToastService.ShowError(response?.ErrorMessage ?? "Error al registrar el cliente");
+                }
             }
-            else
+            catch (Exception ex)
             {
-
+                ToastService.ShowError("Error al procesar la solicitud");
+                Console.WriteLine($"Error: {ex.Message}");
             }
         }
 
-        protected async Task GetIdentificationTypes()
+        private bool ValidateIdentification()
         {
-
-            var res = await ApiClient.GetFromJsonAsync<BaseResponseModel>("/api/Catalog/identification-types");
-
-            if (res != null && res.Success)
+            if (string.IsNullOrEmpty(customer.IdentificationTypeId) ||
+                string.IsNullOrEmpty(customer.Identification))
             {
-                IdentificationTypes = JsonConvert.DeserializeObject<List<IdentificationTypeModel>>(res.Data.ToString()!)!;
+                identificationError = "Tipo y número de identificación son requeridos";
+                return false;
             }
 
+            var validationResult = IdentificationValidationUtils.ValidateIdentification(
+                customer.IdentificationTypeId,
+                customer.Identification
+            );
+
+            identificationError = validationResult?.ErrorMessage;
+            return validationResult == ValidationResult.Success;
         }
 
-        protected async Task GetProvinces()
+        private async Task LoadCatalogs()
         {
-
-            var res = await ApiClient.GetFromJsonAsync<BaseResponseModel>("/api/Catalog/provinces");
-
-            if (res != null && res.Success)
+            try
             {
-                Provinces = JsonConvert.DeserializeObject<List<ProvinceModel>>(res.Data.ToString()!)!;
-            }
+                var identificationTypesResponse = await ApiClient.GetFromJsonAsync<BaseResponseModel>(
+                    "/api/Catalog/identification-types"
+                );
 
+                if (identificationTypesResponse?.Success == true)
+                {
+                    IdentificationTypes = JsonConvert.DeserializeObject<List<IdentificationTypeModel>>(
+                        identificationTypesResponse.Data.ToString()!
+                    )!;
+                }
+
+                var provincesResponse = await ApiClient.GetFromJsonAsync<BaseResponseModel>(
+                    "/api/Catalog/provinces"
+                );
+
+                if (provincesResponse?.Success == true)
+                {
+                    Provinces = JsonConvert.DeserializeObject<List<ProvinceModel>>(
+                        provincesResponse.Data.ToString()!
+                    )!;
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError("Error al cargar los catálogos");
+                Console.WriteLine($"Error: {ex.Message}");
+            }
         }
 
-        protected async Task SearchCantonsOfProvinces()
+        private async Task SearchCantonsOfProvinces()
         {
+            if (ProvinceSelected == null) return;
 
-            if (ProvinceSelected == null)
+            var response = await ApiClient.GetFromJsonAsync<BaseResponseModel>(
+                $"/api/Catalog/provinces/{ProvinceSelected}/cantons"
+            );
+
+            if (response?.Success == true)
             {
-                return;
-            }
-
-
-            var res = await ApiClient.GetFromJsonAsync<BaseResponseModel>($"/api/Catalog/provinces/{ProvinceSelected}/cantons");
-
-            if (res != null && res.Success)
-            {
-                Cantons = JsonConvert.DeserializeObject<List<CantonModel>>(res.Data.ToString()!)!;
-
+                Cantons = JsonConvert.DeserializeObject<List<CantonModel>>(
+                    response.Data.ToString()!
+                )!;
             }
         }
 
-        protected async Task SearchDistrictsOfCanton()
+        private async Task SearchDistrictsOfCanton()
         {
+            if (CantonSelected == null) return;
 
-            if (CantonSelected == null)
+            var response = await ApiClient.GetFromJsonAsync<BaseResponseModel>(
+                $"/api/Catalog/cantons/{CantonSelected}/districts"
+            );
+
+            if (response?.Success == true)
             {
-                return;
-            }
-
-
-            var res = await ApiClient.GetFromJsonAsync<BaseResponseModel>($"/api/Catalog/cantons/{CantonSelected}/districts");
-
-            if (res != null && res.Success)
-            {
-                Districts = JsonConvert.DeserializeObject<List<DistrictModel>>(res.Data.ToString()!)!;
-
+                Districts = JsonConvert.DeserializeObject<List<DistrictModel>>(
+                    response.Data.ToString()!
+                )!;
             }
         }
-
-
     }
 }

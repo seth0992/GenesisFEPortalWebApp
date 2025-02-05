@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenesisFEPortalWebApp.Model
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenesisFEPortalWebApp.Database", "GenesisFEPortalWebApp.Database\GenesisFEPortalWebApp.Database.csproj", "{7FA9D3AE-C57E-4289-B820-8FB55DA5C611}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenesisFEPortalWebApp.Utilities", "GenesisFEPortalWebApp.Utilities\GenesisFEPortalWebApp.Utilities.csproj", "{62840257-DC19-4DAE-94B7-01E80299CC2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{7FA9D3AE-C57E-4289-B820-8FB55DA5C611}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7FA9D3AE-C57E-4289-B820-8FB55DA5C611}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7FA9D3AE-C57E-4289-B820-8FB55DA5C611}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62840257-DC19-4DAE-94B7-01E80299CC2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62840257-DC19-4DAE-94B7-01E80299CC2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62840257-DC19-4DAE-94B7-01E80299CC2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62840257-DC19-4DAE-94B7-01E80299CC2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

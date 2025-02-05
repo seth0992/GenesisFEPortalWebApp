@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GenesisFEPortalWebApp.Database\GenesisFEPortalWebApp.Database.csproj" />
     <ProjectReference Include="..\GenesisFEPortalWebApp.Models\GenesisFEPortalWebApp.Models.csproj" />
+    <ProjectReference Include="..\GenesisFEPortalWebApp.Utilities\GenesisFEPortalWebApp.Utilities.csproj" />
   </ItemGroup>
 
 </Project>
