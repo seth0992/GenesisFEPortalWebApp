@@ -1,4 +1,5 @@
 ﻿using GenesisFEPortalWebApp.Models.Models.Auth;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.IdentityModel.Tokens.Jwt;
@@ -9,22 +10,51 @@ namespace GenesisFEPortalWebApp.Web.Services.Authentication
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
         private readonly ProtectedLocalStorage _localStorage;
-
-        public CustomAuthStateProvider(ProtectedLocalStorage localStorage)
+        private NavigationManager _navigationManager { get; set; } = default!;
+        public CustomAuthStateProvider(ProtectedLocalStorage localStorage , NavigationManager navigationManager)
         {
             _localStorage = localStorage;
+            _navigationManager = navigationManager;
         }
+
+        //public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        //{
+        //    // Obtener el estado de la sesión del almacenamiento local
+        //    var sessionModel = await _localStorage.GetAsync<LoginResponseModel>("sessionState");
+        //    var identity = sessionModel.Value == null ?
+        //        new ClaimsIdentity() :
+        //        GetClaimsIdentity(sessionModel.Value.Token);
+
+        //    var user = new ClaimsPrincipal(identity);
+        //    return new AuthenticationState(user);
+        //}
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // Obtener el estado de la sesión del almacenamiento local
-            var sessionModel = await _localStorage.GetAsync<LoginResponseModel>("sessionState");
-            var identity = sessionModel.Value == null ?
-                new ClaimsIdentity() :
-                GetClaimsIdentity(sessionModel.Value.Token);
+            try
+            {
+                var sessionModel = await _localStorage.GetAsync<LoginResponseModel>("sessionState");
 
-            var user = new ClaimsPrincipal(identity);
-            return new AuthenticationState(user);
+                if (!sessionModel.Success || sessionModel.Value == null)
+                {
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                }
+
+                // Verificar expiración del token
+                if (sessionModel.Value.TokenExpired < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                {
+                    await _localStorage.DeleteAsync("sessionState");
+                    _navigationManager.NavigateTo("/login", true);
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                }
+
+                var identity = GetClaimsIdentity(sessionModel.Value.Token);
+                return new AuthenticationState(new ClaimsPrincipal(identity));
+            }
+            catch
+            {
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
         }
 
         public async Task MarkUserAsAuthenticated(LoginResponseModel model)
