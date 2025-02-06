@@ -334,10 +334,15 @@
                                           Size="ButtonSize.Small"
                                           Click="@(() => NavigateToEdit(customer.ID))"
                                           ToolTip="Editar" />
-                            <RadzenButton ButtonStyle="ButtonStyle.Light"
+                   @*          <RadzenButton ButtonStyle="ButtonStyle.Light"
                                           Icon="@(customer.IsActive ? "block" : "check_circle")"
                                           Size="ButtonSize.Small"
                                           Click="@(() => ToggleCustomerStatus(customer))"
+                                          ToolTip="@(customer.IsActive ? "Desactivar" : "Activar")" /> *@
+                            <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                          Icon="@(customer.IsActive ? "block" : "check_circle")"
+                                          Size="ButtonSize.Small"
+                                          Click="@(() => HandleToggleStatus(customer))"
                                           ToolTip="@(customer.IsActive ? "Desactivar" : "Activar")" />
                         </RadzenStack>
                     </Template>

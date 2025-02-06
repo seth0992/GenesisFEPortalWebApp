@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Newtonsoft.Json;
+using System.Net.Http;
 using System.Net.Http.Headers;
 
 namespace GenesisFEPortalWebApp.Web;
@@ -50,6 +51,20 @@ public class ApiClient(HttpClient httpClient,
         await SetAuthorizationHeader();
         var result = await httpClient.GetFromJsonAsync<T>(path);
         return result ?? throw new InvalidOperationException("Received null response from the server.");
+    }
+    public async Task<T?> PatchAsync<T>(string requestUri, object? content = null)
+    {
+        var jsonContent = content != null ? JsonContent.Create(content) : null;
+        var response = await httpClient.PatchAsync(requestUri, jsonContent);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new ApplicationException($"Error en la solicitud: {error}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<T>();
+        return result;
     }
 
     /// <summary>

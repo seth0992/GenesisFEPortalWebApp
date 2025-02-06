@@ -141,41 +141,83 @@ namespace GenesisFEPortalWebApp.Web.Components.Pages.Customer
             NavigationManager.NavigateTo($"/customer/update/{customerId}");
         }
 
-        private async Task ToggleCustomerStatus(CustomerModel customer)
+        //private async Task ToggleCustomerStatus(CustomerModel customer)
+        //{
+        //    var result = await DialogService.Confirm(
+        //        $"¿Está seguro que desea {(customer.IsActive ? "desactivar" : "activar")} este cliente?",
+        //        $"{(customer.IsActive ? "Desactivar" : "Activar")} Cliente",
+        //        new ConfirmOptions { OkButtonText = "Sí", CancelButtonText = "No" });
+
+        //    if (result == true)
+        //    {
+        //        try
+        //        {
+        //            var response = await ApiClient.PutAsync<BaseResponseModel, object>(
+        //                $"/api/Customer/{customer.ID}/toggle-status",
+        //                new { });
+
+        //            if (response?.Success == true)
+        //            {
+        //                ToastService.ShowSuccess(
+        //                    $"Cliente {(customer.IsActive ? "desactivado" : "activado")} exitosamente");
+        //                await LoadCustomers();
+        //            }
+        //            else
+        //            {
+        //                ToastService.ShowError(
+        //                    response?.ErrorMessage ?? "Error al cambiar el estado del cliente");
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            ToastService.ShowError("Ocurrió un error al procesar la solicitud");
+        //            Console.WriteLine($"Error: {ex.Message}");
+        //        }
+        //    }
+        //}
+
+        private async Task HandleToggleStatus(CustomerModel customer)
         {
-            var result = await DialogService.Confirm(
-                $"¿Está seguro que desea {(customer.IsActive ? "desactivar" : "activar")} este cliente?",
+            var action = customer.IsActive ? "desactivar" : "activar";
+            var confirmed = await DialogService.Confirm(
+                $"¿Está seguro que desea {action} este cliente?",
                 $"{(customer.IsActive ? "Desactivar" : "Activar")} Cliente",
                 new ConfirmOptions { OkButtonText = "Sí", CancelButtonText = "No" });
 
-            if (result == true)
+            if (confirmed ?? false)
             {
                 try
                 {
-                    var response = await ApiClient.PutAsync<BaseResponseModel, object>(
-                        $"/api/Customer/{customer.ID}/toggle-status",
-                        new { });
-
-                    if (response?.Success == true)
+                    BaseResponseModel? response;
+                    if (customer.IsActive)
                     {
-                        ToastService.ShowSuccess(
-                            $"Cliente {(customer.IsActive ? "desactivado" : "activado")} exitosamente");
-                        await LoadCustomers();
+                        response = await ApiClient.DeleteAsync<BaseResponseModel>($"api/Customer/{customer.ID}");
                     }
                     else
                     {
-                        ToastService.ShowError(
-                            response?.ErrorMessage ?? "Error al cambiar el estado del cliente");
+                        response = await ApiClient.PatchAsync<BaseResponseModel>($"api/Customer/{customer.ID}/activate", new { });
+                    }
+
+                    if (response?.Success == true)
+                    {
+                        await LoadCustomers();
+                        ToastService.ShowSuccess($"Cliente {(customer.IsActive ? "desactivado" : "activado")} exitosamente");
+                    }
+                    else
+                    {
+                        ToastService.ShowError(response?.ErrorMessage ?? $"Error al {action} el cliente");
                     }
                 }
                 catch (Exception ex)
                 {
-                    ToastService.ShowError("Ocurrió un error al procesar la solicitud");
+                    ToastService.ShowError($"Error al {action} el cliente");
                     Console.WriteLine($"Error: {ex.Message}");
                 }
             }
         }
     }
+
+
     // ListCustomer.razor.cs
     //public partial class ListCustomer
     //{

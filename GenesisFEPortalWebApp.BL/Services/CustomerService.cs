@@ -20,6 +20,10 @@ namespace GenesisFEPortalWebApp.BL.Services
         Task<CustomerModel?> GetCustomerByIdAsync(long id);
         Task<CustomerModel> UpdateCustomerAsync(UpdateCustomerDto customer);
         Task<bool> DeleteCustomerAsync(long id);
+
+        Task<bool> ActivateCustomerAsync(long id);
+        Task<bool> CheckDuplicateIdentificationAsync(string identification, long? excludeId = null);
+
     }
 
     public class CustomerService : ICustomerService
@@ -42,6 +46,12 @@ namespace GenesisFEPortalWebApp.BL.Services
         {
             try
             {
+                // Verificar duplicados
+                if (await CheckDuplicateIdentificationAsync(customerDto.Identification))
+                {
+                    throw new ValidationException("Ya existe un cliente con esta identificación en su organización");
+                }
+
                 // Validar identificación
                 var validationResult = IdentificationValidationUtils.ValidateIdentification(
                     customerDto.IdentificationTypeId,
@@ -91,6 +101,7 @@ namespace GenesisFEPortalWebApp.BL.Services
                 // Validate customer before creation (optional but recommended)
                 ValidateCustomer(customer);
 
+
                 // Create and return the customer
                 return await _customerRepository.CreateCustomerAsync(customer);
             }
@@ -100,7 +111,17 @@ namespace GenesisFEPortalWebApp.BL.Services
                 throw; // Re-throw to allow caller to handle specific errors
             }
         }
+        public async Task<bool> ActivateCustomerAsync(long id)
+        {
+            var tenantId = _tenantService.GetCurrentTenantId();
+            return await _customerRepository.ActivateCustomerAsync(id, tenantId);
+        }
 
+        public async Task<bool> CheckDuplicateIdentificationAsync(string identification, long? excludeId = null)
+        {
+            var tenantId = _tenantService.GetCurrentTenantId();
+            return await _customerRepository.ExistsInTenantAsync(identification, tenantId, excludeId);
+        }
         private void ValidateCustomer(CustomerModel customer)
         {
             // Perform additional validation if needed

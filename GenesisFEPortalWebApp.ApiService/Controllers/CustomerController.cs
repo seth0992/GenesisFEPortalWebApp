@@ -206,6 +206,32 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
                 });
             }
         }
+
+        [HttpPatch("{id}/activate")]
+        public async Task<ActionResult<BaseResponseModel>> ActivateCustomer(long id)
+        {
+            try
+            {
+                var success = await _customerService.ActivateCustomerAsync(id);
+
+                return Ok(new BaseResponseModel
+                {
+                    Success = success,
+                    ErrorMessage = success ? null : "No se pudo activar el cliente",
+                    Data = success
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error activando cliente {CustomerId}", id);
+                return StatusCode(500, new BaseResponseModel
+                {
+                    Success = false,
+                    ErrorMessage = "Error interno del servidor"
+                });
+            }
+        }
+
     }
 }
 

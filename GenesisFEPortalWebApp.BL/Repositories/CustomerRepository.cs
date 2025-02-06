@@ -19,6 +19,9 @@ namespace GenesisFEPortalWebApp.BL.Repositories
         Task<CustomerModel?> GetByIdAsync(long id, long tenantId);
         Task<CustomerModel> UpdateAsync(CustomerModel customer);
         Task<bool> DeleteAsync(long id, long tenantId);
+        Task<bool> ExistsInTenantAsync(string identification, long tenantId, long? excludeId = null);
+
+        Task<bool> ActivateCustomerAsync(long id, long tenantId);
     }
 
     public class CustomerRepository : ICustomerRepository
@@ -67,7 +70,8 @@ namespace GenesisFEPortalWebApp.BL.Repositories
                 .Include(c => c.IdentificationType)
                 .Include(c => c.District)
                     .ThenInclude(d => d.Canton)
-                .Where(c => c.TenantId == tenantId && c.IsActive == true)             
+                .Where(c => c.TenantId == tenantId)
+                 //.Where(c => c.TenantId == tenantId && c.IsActive == true)
                 .ToListAsync();
         }
 
@@ -80,7 +84,19 @@ namespace GenesisFEPortalWebApp.BL.Repositories
                         .ThenInclude(c => c.Province)
                 .FirstOrDefaultAsync(c => c.ID == id && c.TenantId == tenantId);
         }
+        public async Task<bool> ExistsInTenantAsync(string identification, long tenantId, long? excludeId = null)
+        {
+            var query = _context.Customers
+                .Where(c => c.TenantId == tenantId &&
+                            c.Identification == identification);
 
+            if (excludeId.HasValue)
+            {
+                query = query.Where(c => c.ID != excludeId.Value);
+            }
+
+            return await query.AnyAsync();
+        }
         public async Task<CustomerModel> UpdateAsync(CustomerModel customer)
         {
             _context.Customers.Update(customer);
@@ -96,6 +112,20 @@ namespace GenesisFEPortalWebApp.BL.Repositories
             if (customer == null) return false;
 
             customer.IsActive = false;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ActivateCustomerAsync(long id, long tenantId)
+        {
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.ID == id && c.TenantId == tenantId);
+
+            if (customer == null) return false;
+
+            customer.IsActive = true;
+            customer.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             return true;
         }
