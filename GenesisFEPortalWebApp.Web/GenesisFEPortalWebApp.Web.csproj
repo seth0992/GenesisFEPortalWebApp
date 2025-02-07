@@ -19,8 +19,4 @@
     <ProjectReference Include="..\GenesisFEPortalWebApp.Utilities\GenesisFEPortalWebApp.Utilities.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Components\Pages\Tenant\" />
-  </ItemGroup>
-
 </Project>

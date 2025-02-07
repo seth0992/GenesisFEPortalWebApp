@@ -922,3 +922,21 @@ FROM (
     SELECT 61102, 611, 'PACIFICO CENTRAL', 'TARCOLES'
 ) AS DistritoTemp
 JOIN Catalog.Region r ON DistritoTemp.RegionName = r.RegionName;
+
+
+
+-- Datos iniciales para suscripciones
+INSERT INTO Subscription.SubscriptionTypes 
+(Name, Description, Price, DurationInDays, MaxUsers, IncludeSupport, Features, IsActive) 
+VALUES
+('Trial', 'Versión de prueba por 30 días', 0, 30, 2, 0, 
+'{"users": 2, "customers": 10, "support": false}', 1),
+
+('Basic', 'Plan básico mensual', 29.99, 30, 5, 0,
+'{"users": 5, "customers": 50, "support": false}', 1),
+
+('Professional', 'Plan profesional mensual', 59.99, 30, 15, 1,
+'{"users": 15, "customers": 200, "support": true}', 1),
+
+('Enterprise', 'Plan empresarial mensual', 99.99, 30, 50, 1,
+'{"users": 50, "customers": "unlimited", "support": true}', 1);

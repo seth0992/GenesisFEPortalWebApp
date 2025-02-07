@@ -13,6 +13,8 @@ CREATE SCHEMA Core;     -- Para tablas principales del negocio
 GO
 CREATE SCHEMA Audit;    -- Para auditoría
 GO
+CREATE SCHEMA Subscription;
+GO
 
 
 -- Tablas
@@ -273,3 +275,51 @@ CREATE INDEX IX_Customers_TenantId ON Core.Customers(TenantId);
 CREATE INDEX IX_Customers_Identification ON Core.Customers(Identification);
 CREATE INDEX IX_ChangeLog_EntityName_EntityId ON Audit.ChangeLog(EntityName, EntityID);
 CREATE INDEX IX_AccessLog_UserId_CreatedAt ON Audit.AccessLog(UserID, CreatedAt);
+
+
+/************************************/
+/* Tablas de Subscription           */
+/************************************/
+CREATE TABLE Subscription.SubscriptionTypes (
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(500),
+    Price DECIMAL(18,2) NOT NULL,
+    DurationInDays INT NOT NULL,
+    MaxUsers INT NOT NULL,
+    IncludeSupport BIT NOT NULL DEFAULT 0,
+    Features NVARCHAR(MAX), -- JSON
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME NULL
+);
+
+CREATE TABLE Subscription.SubscriptionHistory (
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    TenantId BIGINT NOT NULL,
+    SubscriptionTypeId BIGINT NOT NULL,
+    StartDate DATETIME NOT NULL,
+    EndDate DATETIME NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    TransactionId NVARCHAR(100),
+    PaymentStatus NVARCHAR(50) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME NULL,
+    CONSTRAINT FK_SubscriptionHistory_Tenant FOREIGN KEY (TenantId) 
+        REFERENCES Core.Tenants(ID),
+    CONSTRAINT FK_SubscriptionHistory_SubscriptionType FOREIGN KEY (SubscriptionTypeId) 
+        REFERENCES Subscription.SubscriptionTypes(ID)
+);
+
+
+ALTER TABLE Core.Tenants ADD
+    SubscriptionTypeId BIGINT NULL,
+    SubscriptionStartDate DATETIME NULL,
+    SubscriptionEndDate DATETIME NULL,
+    IsTrialPeriod BIT NOT NULL DEFAULT 0,
+    SubscriptionAmount DECIMAL(18,2) NULL,
+    PaymentMethod NVARCHAR(50) NULL,
+    PaymentStatus NVARCHAR(50) NULL,
+    CONSTRAINT FK_Tenants_SubscriptionType FOREIGN KEY (SubscriptionTypeId) 
+        REFERENCES Subscription.SubscriptionTypes(ID);

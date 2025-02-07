@@ -1,0 +1,132 @@
+﻿@page "/register-subscription"
+@layout EmptyLayout
+@using GenesisFEPortalWebApp.Models.Entities.Subscription
+@using GenesisFEPortalWebApp.Models.Models
+@using GenesisFEPortalWebApp.Models.Models.Subscription
+@using System.Text.Json
+
+
+<RadzenStack Gap="1rem" Class="rz-p-4">
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenText TextStyle="TextStyle.H3">Selecciona tu Plan</RadzenText>
+        </RadzenColumn>
+    </RadzenRow>
+
+    @if (subscriptionPlans?.Any() == true)
+    {
+        <RadzenRow>
+            @foreach (var plan in subscriptionPlans)
+            {
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Style="height: 100%;">
+                        <RadzenStack Gap="1rem">
+                            <RadzenText TextStyle="TextStyle.H5">@plan.Name</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H4">
+                                @plan.Price.ToString("C")
+                                <small>/mes</small>
+                            </RadzenText>
+                            <RadzenText>@plan.Description</RadzenText>
+
+                            <RadzenStack Gap="0.5rem">
+                                @foreach (var feature in GetFeatures(plan))
+                                {
+                                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                        <RadzenIcon Icon="check" />
+                                        <RadzenText>@feature</RadzenText>
+                                    </RadzenStack>
+                                }
+                            </RadzenStack>
+
+                            <RadzenButton ButtonStyle="ButtonStyle.Primary"
+                            Click="@(() => SelectPlan(plan))"
+                            Text="Seleccionar Plan"
+                            Class="w-100" />
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+            }
+        </RadzenRow>
+    }
+
+    @if (showRegistrationForm)
+    {
+        <RadzenTemplateForm TItem="RegisterTenantWithSubscriptionDto"
+        Data="@registrationModel"
+        Submit="@HandleSubmit">
+            <!-- Formulario de registro similar al existente -->
+        </RadzenTemplateForm>
+    }
+</RadzenStack>
+
+@code {
+    [Inject] private ApiClient ApiClient { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+    [Inject] private IToastService ToastService { get; set; } = default!;
+    private List<SubscriptionTypeModel>? subscriptionPlans;
+    private bool showRegistrationForm;
+    private RegisterTenantWithSubscriptionDto registrationModel = new();
+    private SubscriptionTypeModel? selectedPlan;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubscriptionPlans();
+    }
+
+    private async Task LoadSubscriptionPlans()
+    {
+        var response = await ApiClient.GetFromJsonAsync<BaseResponseModel>("api/subscription/plans");
+        if (response?.Success == true)
+        {
+            subscriptionPlans = Newtonsoft.Json.JsonConvert.DeserializeObject<List<SubscriptionTypeModel>>(
+                response.Data.ToString()!);
+        }
+    }
+
+    private List<string> GetFeatures(SubscriptionTypeModel plan)
+    {
+        var features = JsonSerializer.Deserialize<Dictionary<string, object>>(plan.Features);
+        var featureList = new List<string>();
+
+        if (features != null)
+        {
+            featureList.Add($"Hasta {features["users"]} usuarios");
+            featureList.Add($"{features["customers"]} clientes");
+            if ((bool)features["support"])
+                featureList.Add("Soporte prioritario");
+        }
+
+        return featureList;
+    }
+
+    private void SelectPlan(SubscriptionTypeModel plan)
+    {
+        selectedPlan = plan;
+        registrationModel.SubscriptionTypeId = plan.ID;
+        showRegistrationForm = true;
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            var response = await ApiClient.PostAsync<BaseResponseModel, RegisterTenantWithSubscriptionDto>(
+                "api/subscription/register", registrationModel);
+
+            if (response?.Success == true)
+            {
+                ToastService.ShowSuccess("Registro exitoso");
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                ToastService.ShowError(response?.ErrorMessage ?? "Error en el registro");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Error procesando el registro");
+        }
+    }
+}
