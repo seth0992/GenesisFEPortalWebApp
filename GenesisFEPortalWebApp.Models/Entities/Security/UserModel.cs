@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace GenesisFEPortalWebApp.Models.Entities.Security
@@ -26,7 +27,9 @@ namespace GenesisFEPortalWebApp.Models.Entities.Security
         public int AccessFailedCount { get; set; }
         public DateTime? LastLoginDate { get; set; }
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public virtual RoleModel Role { get; set; } = null!;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public virtual TenantModel Tenant { get; set; } = null!;
         public virtual ICollection<RefreshTokenModel> RefreshTokens { get; set; } = new List<RefreshTokenModel>();
 

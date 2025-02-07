@@ -13,6 +13,7 @@ using GenesisFEPortalWebApp.BL.Cache.Configuration;
 using System.Text;
 using GenesisFEPortalWebApp.ApiService.Authentication;
 using Microsoft.AspNetCore.Authentication;
+using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,31 +60,48 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Ignorar referencias circulares
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
+        // Mantener las mayúsculas/minúsculas de las propiedades
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+
+        // Ignorar valores nulos
+        options.JsonSerializerOptions.DefaultIgnoreCondition =
+            JsonIgnoreCondition.WhenWritingNull;
+    });
+
+
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services 
 
+// Catalog services
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 
-
+// Customer services
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
+//User services
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 builder.Services.AddHttpContextAccessor();
 
-// Repositories
+// Authentication services
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
-
-// Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITenantRegistrationService, TenantRegistrationService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-
 builder.Services.AddScoped<IAuthAuditLogger, AuthAuditLogger>();
-// Other services
+
 
 // Configuración de seguridad
 builder.Services.Configure<SecurityOptions>(

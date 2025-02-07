@@ -1,0 +1,143 @@
+﻿@page "/users"
+@attribute [Authorize(Roles = "TenantAdmin")]
+@using GenesisFEPortalWebApp.Models.Models.Auth
+@using GenesisFEPortalWebApp.Models.Models.User
+
+<PageTitle>Gestión de Usuarios</PageTitle>
+
+<RadzenStack Gap="1rem" Class="rz-p-4">
+    <!-- Encabezado con título y botón de agregar -->
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Class="rz-mb-4">
+        <RadzenColumn Size="6">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenIcon Icon="people" />
+                <RadzenText TextStyle="TextStyle.H3">Gestión de Usuarios</RadzenText>
+            </RadzenStack>
+        </RadzenColumn>
+        <RadzenColumn Size="6" class="rz-text-align-end">
+            <RadzenButton Icon="add" Text="Nuevo Usuario"
+                          ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => NavigationManager.NavigateTo("/users/create"))" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <!-- Panel de Filtros -->
+    <RadzenCard Class="rz-mb-4">
+        <RadzenText TextStyle="TextStyle.Subtitle1" Class="rz-mb-3">Filtros de Búsqueda</RadzenText>
+        <RadzenRow>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenTextBox Placeholder="Buscar por nombre o email..."
+                               @bind-Value="@searchText"
+                               Change="@(args => OnSearch(args))"
+                               Class="w-100" />
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenDropDown @bind-Value="@selectedRole"
+                                Data="@availableRoles"
+                                TextProperty="Name"
+                                ValueProperty="ID"
+                                AllowClear="true"
+                                Placeholder="Rol"
+                                Change="@OnSearch"
+                                Class="w-100" />
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenDropDown @bind-Value="@selectedStatus"
+                                Data="@(new[] { "Todos", "Activos", "Inactivos" })"
+                                Change="@OnSearch"
+                                Placeholder="Estado"
+                                Class="w-100" />
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="2" Class="rz-text-align-end">
+                <RadzenButton Icon="refresh" Text="Limpiar"
+                              ButtonStyle="ButtonStyle.Light"
+                              Click="@ClearFilters" />
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
+
+    <!-- Tabla de Usuarios -->
+    @if (isLoading)
+    {
+        <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" Value="100" />
+    }
+    else if (users?.Any() != true)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Class="rz-p-4">
+                <RadzenIcon Icon="info" />
+                <RadzenText>No se encontraron usuarios con los criterios especificados.</RadzenText>
+                <RadzenButton Text="Crear Nuevo Usuario"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Click="@(() => NavigationManager.NavigateTo("/users/create"))" />
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else
+    {
+        <RadzenDataGrid @ref="grid"
+                        Data="@users"
+                        TItem="UserListDto"
+                        AllowFiltering="false"
+                        AllowSorting="true"
+                        AllowPaging="true"
+                        PageSize="10"
+                        PagerHorizontalAlign="HorizontalAlign.Right"
+                        ShowPagingSummary="true">
+            <Columns>
+                <RadzenDataGridColumn TItem="UserListDto" Property="Email" Title="Email" Width="200px">
+                    <Template Context="user">
+                        <RadzenStack Orientation="Orientation.Vertical" Gap="0">
+                            <RadzenText TextStyle="TextStyle.Body1">@user.Email</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption">
+                                @user.FirstName @user.LastName
+                            </RadzenText>
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="UserListDto" Property="RoleName" Title="Rol"
+                                      Width="150px" TextAlign="TextAlign.Center">
+                    <Template Context="user">
+                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@user.RoleName" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="UserListDto" Property="IsActive" Title="Estado"
+                                      Width="100px" TextAlign="TextAlign.Center">
+                    <Template Context="user">
+                        <RadzenBadge BadgeStyle="@(user.IsActive ? BadgeStyle.Success : BadgeStyle.Light)"
+                                     Text="@(user.IsActive ? "Activo" : "Inactivo")" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="UserListDto" Property="CreatedAt" Title="Creado"
+                                      Width="150px" TextAlign="TextAlign.Center"
+                                      FormatString="{0:dd/MM/yyyy HH:mm}" />
+
+                <RadzenDataGridColumn TItem="UserListDto" Width="100px" TextAlign="TextAlign.Center"
+                                      Sortable="false" Filterable="false">
+                    <Template Context="user">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center"
+                                     Gap="0.5rem">
+                            <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                          Icon="edit"
+                                          Size="ButtonSize.Small"
+                                          Click="@(() => NavigateToEdit(user.Id))"
+                                          ToolTip="Editar" />
+                            <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                          Icon="@(user.IsActive ? "block" : "check_circle")"
+                                          Size="ButtonSize.Small"
+                                          Click="@(() => HandleToggleStatus(user))"
+                                          ToolTip="@(user.IsActive ? "Desactivar" : "Activar")" />
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+</RadzenStack>
+
+<!-- Diálogo de confirmación -->
+<RadzenDialog />
+<RadzenNotification />

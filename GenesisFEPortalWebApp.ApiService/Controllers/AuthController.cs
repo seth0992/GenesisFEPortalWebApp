@@ -58,47 +58,33 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
                 Data = loginResponse    // Este es el objeto que necesitamos deserializar
             });
         }
-
-        //public async Task<ActionResult<BaseResponseModel>> Login([FromBody] LoginDto model)
+               
+        //[HttpPost("register")]
+        //[Authorize(Roles = "TenantAdmin")]
+        //public async Task<ActionResult<BaseResponseModel>> Register([FromBody] RegisterUserDto model)
         //{
         //    try
         //    {
-        //        var (user, token, refreshToken) = await _authService.LoginAsync(model);
+        //        var (success, errorMessage) = await _authService.RegisterUserAsync(model);
 
-        //        if (user == null || token == null)
+        //        if (!success)
         //        {
         //            return Ok(new BaseResponseModel
         //            {
         //                Success = false,
-        //                ErrorMessage = "Credenciales inválidas"
+        //                ErrorMessage = errorMessage ?? "Error al registrar el usuario"
         //            });
         //        }
 
-        //        var response = new BaseResponseModel
+        //        return Ok(new BaseResponseModel
         //        {
         //            Success = true,
-        //            Data = new
-        //            {
-        //                user = new UserDto
-        //                {
-        //                    Id = user.ID,
-        //                    Email = user.Email,
-        //                    Username = user.Username,
-        //                    FirstName = user.FirstName,
-        //                    LastName = user.LastName,
-        //                    RoleName = user.Role.Name,
-        //                    TenantName = user.Tenant.Name
-        //                },
-        //                token,
-        //                refreshToken
-        //            }
-        //        };
-
-        //        return Ok(response);
+        //            Data = "Usuario registrado exitosamente"
+        //        });
         //    }
         //    catch (Exception ex)
         //    {
-        //        _logger.LogError(ex, "Error en login");
+        //        _logger.LogError(ex, "Error en registro de usuario");
         //        return Ok(new BaseResponseModel
         //        {
         //            Success = false,
@@ -106,40 +92,6 @@ namespace GenesisFEPortalWebApp.ApiService.Controllers
         //        });
         //    }
         //}
-
-        [HttpPost("register")]
-        [Authorize(Roles = "TenantAdmin")]
-        public async Task<ActionResult<BaseResponseModel>> Register([FromBody] RegisterUserDto model)
-        {
-            try
-            {
-                var (success, errorMessage) = await _authService.RegisterUserAsync(model);
-
-                if (!success)
-                {
-                    return Ok(new BaseResponseModel
-                    {
-                        Success = false,
-                        ErrorMessage = errorMessage ?? "Error al registrar el usuario"
-                    });
-                }
-
-                return Ok(new BaseResponseModel
-                {
-                    Success = true,
-                    Data = "Usuario registrado exitosamente"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error en registro de usuario");
-                return Ok(new BaseResponseModel
-                {
-                    Success = false,
-                    ErrorMessage = "Error al procesar la solicitud"
-                });
-            }
-        }
 
         [HttpPost("refresh-token")]
         public async Task<ActionResult<BaseResponseModel>> RefreshToken([FromBody] RefreshTokenRequest request)
