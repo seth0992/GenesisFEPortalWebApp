@@ -1,0 +1,23 @@
+﻿// GenesisFEPortalWebApp.Web/Components/Shared/ConfirmDialog.razor
+@inherits ComponentBase
+
+<RadzenDialog />
+
+@code {
+    [Inject] DialogService DialogService { get; set; } = default!;
+
+    public async Task<bool> ShowConfirmation(string title, string message, string confirmText = "Sí", string cancelText = "No")
+    {
+        var result = await DialogService.Confirm(
+            message,
+            title,
+            new ConfirmOptions()
+                {
+                    OkButtonText = confirmText,
+                    CancelButtonText = cancelText,
+                    CloseDialogOnOverlayClick = true // Permite cerrar haciendo clic fuera
+                });
+
+        return result ?? false;
+    }
+}

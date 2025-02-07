@@ -1,0 +1,135 @@
+﻿@page "/users/create"
+@attribute [Authorize(Roles = "TenantAdmin")]
+@using GenesisFEPortalWebApp.Models.Models.Auth
+@using GenesisFEPortalWebApp.Models.Entities.Security
+@using GenesisFEPortalWebApp.Models.Models.User
+
+<PageTitle>Crear Usuario</PageTitle>
+
+<RadzenStack Gap="1rem" Class="rz-p-4">
+    <!-- Encabezado -->
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenBreadCrumb>
+                <RadzenBreadCrumbItem Path="/users" Text="Usuarios" />
+                <RadzenBreadCrumbItem Text="Crear Usuario" />
+            </RadzenBreadCrumb>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenIcon Icon="person_add" />
+                <RadzenText TextStyle="TextStyle.H3">Crear Nuevo Usuario</RadzenText>
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenTemplateForm TItem="CreateUserDto" Data="@model" Submit="@HandleValidSubmit">
+        <RadzenStack Gap="1.5rem">
+            <!-- Información Personal -->
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H6" Class="rz-mb-3">
+                    <RadzenIcon Icon="badge" Class="rz-mr-2" />
+                    Información de Cuenta
+                </RadzenText>
+
+                <RadzenRow RowGap="1rem">
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Nombre" Variant="Variant.Filled" Required="true" Style="width: 100%;"> 
+                            <RadzenTextBox @bind-Value="model.FirstName"
+                                           Name="FirstName"
+                                           Class="w-100" />
+                            <RadzenRequiredValidator Component="FirstName"
+                                                     Text="El nombre es requerido" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Apellidos" Variant="Variant.Filled" Required="true" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="model.LastName"
+                                           Name="LastName"
+                                           Class="w-100" />
+                            <RadzenRequiredValidator Component="LastName"
+                                                     Text="El apellido es requerido" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+
+                       <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Email" Variant="Variant.Filled" Required="true" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="model.Email"
+                                           Name="Email"
+                                           Type="email"
+                                           Class="w-100" />
+                            <RadzenRequiredValidator Component="Email"
+                                                     Text="El email es requerido" />
+                            <RadzenEmailValidator Component="Email"
+                                                  Text="Formato de email inválido" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Rol" Variant="Variant.Filled" Required="true" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="model.RoleId"
+                                            Data="@availableRoles"
+                                            TextProperty="Name"
+                                            ValueProperty="ID"
+                                            Name="RoleId"
+                                            Placeholder="Seleccione un rol"
+                                            Class="w-100"
+                                            Disabled="@(availableRoles?.Any() != true)" />
+                            <RadzenRequiredValidator Component="RoleId"
+                                                     Text="El rol es requerido" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Contraseña" Variant="Variant.Filled" Required="true" Style="width: 100%;">
+                            <RadzenPassword @bind-Value="model.Password"
+                                            Name="Password"
+                                            Class="w-100" />
+                            <RadzenRequiredValidator Component="Password"
+                                                     Text="La contraseña es requerida" />
+                            <RadzenLengthValidator Component="Password" Min="8"
+                                                   Text="La contraseña debe tener al menos 8 caracteres" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Confirmar Contraseña" Variant="Variant.Filled" Required="true" Style="width: 100%;">
+                            <RadzenPassword @bind-Value="confirmPassword"
+                                            Name="ConfirmPassword"
+                                            Class="w-100" />
+                            <RadzenRequiredValidator Component="ConfirmPassword"
+                                                     Text="La confirmación de contraseña es requerida" />
+                            <RadzenCompareValidator Component="ConfirmPassword" Value="@model.Password"
+                                                    Text="Las contraseñas no coinciden" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenCard>
+
+          
+
+            <!-- Botones de acción -->
+            <RadzenStack Orientation="Orientation.Horizontal"
+                         JustifyContent="JustifyContent.Center"
+                         Gap="1rem"
+                         Class="rz-mt-4">
+                <RadzenButton ButtonStyle="ButtonStyle.Light"
+                              Icon="arrow_back"
+                              Text="Cancelar"
+                              Click="@(() => NavigationManager.NavigateTo("/users"))" />
+                <RadzenButton ButtonType="ButtonType.Submit"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Icon="save"
+                              BusyText="Guardando..."
+                              IsBusy="@isSaving"
+                              Text="Guardar" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenTemplateForm>
+</RadzenStack>
+
+<RadzenNotification />

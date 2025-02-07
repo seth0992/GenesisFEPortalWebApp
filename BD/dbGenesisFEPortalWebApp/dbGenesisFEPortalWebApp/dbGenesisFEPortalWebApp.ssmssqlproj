@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="dbGenesisFEPortalWebApp">
+  <Items>
+    <LogicalFolder Name="Connections" Type="2" Sorted="true">
+      <Items>
+        <ConnectionNode Name="KRONOS\SQLEXPRESS:seth">
+          <Created>2025-01-17T16:55:14.203375-06:00</Created>
+          <Type>SQL</Type>
+          <Server>KRONOS\SQLEXPRESS</Server>
+          <UserName>seth</UserName>
+          <Authentication>SQL</Authentication>
+          <InitialDB />
+          <LoginTimeout>30</LoginTimeout>
+          <TrustServerCertificate>True</TrustServerCertificate>
+          <HostNameInServerCertificate />
+          <EncryptionOption>True</EncryptionOption>
+          <ExecutionTimeout>0</ExecutionTimeout>
+          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
+          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
+        </ConnectionNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Queries" Type="0" Sorted="true">
+      <Items>
+        <FileNode Name="DatosIniciales.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName>seth</AssociatedConnUserName>
+          <FullPath>DatosIniciales.sql</FullPath>
+        </FileNode>
+        <FileNode Name="Otros.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName>seth</AssociatedConnUserName>
+          <FullPath>Otros.sql</FullPath>
+        </FileNode>
+        <FileNode Name="Schemas.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName>seth</AssociatedConnUserName>
+          <FullPath>Schemas.sql</FullPath>
+        </FileNode>
+        <FileNode Name="SQLQuery1.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:KRONOS\SQLEXPRESS:False:seth</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>KRONOS\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName>seth</AssociatedConnUserName>
+          <FullPath>SQLQuery1.sql</FullPath>
+        </FileNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Miscellaneous" Type="3" Sorted="true">
+      <Items />
+    </LogicalFolder>
+  </Items>
+</SqlWorkbenchSqlProject>
