@@ -25,6 +25,7 @@ builder.Services.AddRadzenComponents(); // Library for radzen
 builder.Services.AddBlazoredToast(); // Library for toast notifications -> Change to your preferred library.
 
 
+
 builder.Services.AddHttpClient<ApiClient>(client =>
     {
         // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
@@ -46,6 +47,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.UseOutputCache();
+
 
 app.MapStaticAssets();
 

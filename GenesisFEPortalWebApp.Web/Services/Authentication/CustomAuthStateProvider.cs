@@ -16,19 +16,6 @@ namespace GenesisFEPortalWebApp.Web.Services.Authentication
             _localStorage = localStorage;
             _navigationManager = navigationManager;
         }
-
-        //public override async Task<AuthenticationState> GetAuthenticationStateAsync()
-        //{
-        //    // Obtener el estado de la sesión del almacenamiento local
-        //    var sessionModel = await _localStorage.GetAsync<LoginResponseModel>("sessionState");
-        //    var identity = sessionModel.Value == null ?
-        //        new ClaimsIdentity() :
-        //        GetClaimsIdentity(sessionModel.Value.Token);
-
-        //    var user = new ClaimsPrincipal(identity);
-        //    return new AuthenticationState(user);
-        //}
-
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try

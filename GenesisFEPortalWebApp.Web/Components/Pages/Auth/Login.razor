@@ -34,12 +34,20 @@
                         </div>
                     </EditForm>
                 </div>
+               
+            </div>
+            <div class="mt-3">
+                <span>¿No tienes cuenta? </span>
+                <RadzenButton Text="Registrarse"
+                              ButtonStyle="ButtonStyle.Light"
+                              Click="@NavigateToRegister" />
             </div>
         </div>
     </div>
 </div>
 
 @code {
+
     private LoginDto loginModel = new();
     private async Task HandleLogin()
     {
@@ -72,6 +80,11 @@
             Console.WriteLine($"Error general: {ex.Message}");
             ToastService.ShowError("Error al intentar iniciar sesión");
         }
+    }
+
+    private void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("/register-subscription", true);
     }
 
 }

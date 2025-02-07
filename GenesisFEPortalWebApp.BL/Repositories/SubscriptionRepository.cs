@@ -47,10 +47,19 @@ namespace GenesisFEPortalWebApp.BL.Repositories
 
         public async Task<List<SubscriptionTypeModel>> GetActiveAsync()
         {
-            return await _context.SubscriptionTypes
+            // Agregar un manejo explícito para evitar null
+            var plans = await _context.SubscriptionTypes
                 .Where(s => s.IsActive)
                 .OrderBy(s => s.Price)
                 .ToListAsync();
+
+            // Registrar si no hay planes
+            if (!plans.Any())
+            {
+                _logger.LogWarning("No se encontraron planes de suscripción activos");
+            }
+
+            return plans;
         }
 
         public async Task<SubscriptionHistoryModel> CreateHistoryAsync(SubscriptionHistoryModel history)

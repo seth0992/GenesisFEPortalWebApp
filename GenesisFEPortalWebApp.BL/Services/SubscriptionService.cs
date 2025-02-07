@@ -130,7 +130,9 @@ namespace GenesisFEPortalWebApp.BL.Services
 
         public async Task<List<SubscriptionTypeModel>> GetActiveSubscriptionTypesAsync()
         {
-            return await _subscriptionRepository.GetActiveAsync();
+            // Asegúrate de que el método no devuelva null
+            return await _subscriptionRepository.GetActiveAsync()
+                ?? new List<SubscriptionTypeModel>();
         }
 
         public async Task<(bool Success, string? ErrorMessage)> UpdateTenantSubscriptionAsync(

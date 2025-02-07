@@ -8,14 +8,23 @@ using Microsoft.AspNetCore.Mvc;
 namespace GenesisFEPortalWebApp.ApiService.Controllers
 {
     [Route("api/[controller]")]
+    [AllowAnonymous]
     [ApiController]
     public class SubscriptionAdminController : ControllerBase
     {
         private readonly ISubscriptionService _subscriptionService;
         private readonly ILogger<SubscriptionAdminController> _logger;
 
+        public SubscriptionAdminController(
+       ISubscriptionService subscriptionService,
+       ILogger<SubscriptionAdminController> logger)
+        {
+            _subscriptionService = subscriptionService;          
+            _logger = logger;
+        }
+
         [HttpPost("register")]
-        [Authorize(Roles = "SuperAdmin")]
+        //[Authorize(Roles = "SuperAdmin")]
         public async Task<ActionResult<BaseResponseModel>> RegisterTenantWithSubscription(
             [FromBody] RegisterTenantWithSubscriptionDto model)
         {

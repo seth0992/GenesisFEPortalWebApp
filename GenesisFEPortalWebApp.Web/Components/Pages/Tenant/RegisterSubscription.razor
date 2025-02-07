@@ -1,24 +1,203 @@
 ﻿@page "/register-subscription"
 @layout EmptyLayout
-@using GenesisFEPortalWebApp.Models.Entities.Subscription
-@using GenesisFEPortalWebApp.Models.Models
 @using GenesisFEPortalWebApp.Models.Models.Subscription
 @using System.Text.Json
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
 
 
-<RadzenStack Gap="1rem" Class="rz-p-4">
+<RadzenStack Gap="1.5rem" Class="rz-p-4">
     <RadzenRow>
         <RadzenColumn Size="12">
-            <RadzenText TextStyle="TextStyle.H3">Selecciona tu Plan</RadzenText>
+            <RadzenText TextStyle="TextStyle.H3">Registro de Tenant</RadzenText>
         </RadzenColumn>
     </RadzenRow>
 
-    @if (subscriptionPlans?.Any() == true)
+    @if (selectedPlan != null)
     {
+        <RadzenTemplateForm TItem="RegisterTenantWithSubscriptionDto"
+                            Data="@registrationModel"
+                            Submit="@HandleSubmit">
+            <RadzenStack Gap="1.5rem">
+                <!-- Plan Seleccionado -->
+                <RadzenCard>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Orientation="Orientation.Vertical">
+                            <RadzenText TextStyle="TextStyle.H5">@selectedPlan.Name</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2">@selectedPlan.Description</RadzenText>
+                        </RadzenStack>
+                        <RadzenText TextStyle="TextStyle.H4">
+                            @selectedPlan.Price.ToString("C")
+                            <small>/mes</small>
+                        </RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+
+                <!-- Información de la Empresa -->
+                <RadzenCard>
+                    <RadzenText TextStyle="TextStyle.H6" Class="rz-mb-3">
+                        <RadzenIcon Icon="business" Class="rz-mr-2" />
+                        Información de la Empresa
+                    </RadzenText>
+
+                    <RadzenRow RowGap="1rem">
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Nombre de la Empresa" Variant="Variant.Filled" Required="true">
+                                <RadzenTextBox @bind-Value="registrationModel.CompanyName"
+                                               Name="CompanyName"
+                                               Class="w-100" />
+                                <RadzenRequiredValidator Component="CompanyName"
+                                                         Text="El nombre de la empresa es requerido" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Tipo de Identificación" Variant="Variant.Filled" Required="true">
+                                <RadzenDropDown @bind-Value="selectedIdentificationType"
+                                                Data="@IdentificationTypes"
+                                                TextProperty="Description"
+                                                ValueProperty="ID"
+                                                Change="@(args => UpdateIdentificationModel(args))"
+                                                Class="w-100" />
+                                <RadzenRequiredValidator Component="IdentificationType"
+                                                         Text="El tipo de identificación es requerido" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Número de Identificación" Variant="Variant.Filled" Required="true">
+                                <RadzenTextBox @bind-Value="registrationModel.Identification"
+                                               MaxLength="12"
+                                               Name="Identification"
+                                               Change="@ValidateIdentification"
+                                               Class="w-100" />
+                                <RadzenRequiredValidator Component="Identification"
+                                                         Text="El número de identificación es requerido" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+
+                <!-- Información del Administrador -->
+                <RadzenCard>
+                    <RadzenText TextStyle="TextStyle.H6" Class="rz-mb-3">
+                        <RadzenIcon Icon="person" Class="rz-mr-2" />
+                        Información del Administrador
+                    </RadzenText>
+
+                    <RadzenRow RowGap="1rem">
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Nombre" Variant="Variant.Filled" Required="true">
+                                <RadzenTextBox @bind-Value="registrationModel.FirstName"
+                                               Name="FirstName"
+                                               Class="w-100" />
+                                <RadzenRequiredValidator Component="FirstName"
+                                                         Text="El nombre es requerido" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Apellido" Variant="Variant.Filled" Required="true">
+                                <RadzenTextBox @bind-Value="registrationModel.LastName"
+                                               Name="LastName"
+                                               Class="w-100" />
+                                <RadzenRequiredValidator Component="LastName"
+                                                         Text="El apellido es requerido" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Correo Electrónico" Variant="Variant.Filled" Required="true">
+                                <RadzenTextBox @bind-Value="registrationModel.Email"
+                                               Type="email"
+                                               Name="Email"
+                                               Class="w-100" />
+                                <RadzenRequiredValidator Component="Email"
+                                                         Text="El correo es requerido" />
+                                <RadzenEmailValidator Component="Email"
+                                                      Text="Formato de correo inválido" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Contraseña" Variant="Variant.Filled" Required="true">
+                                <RadzenPassword @bind-Value="registrationModel.Password"
+                                                Name="Password"
+                                                Class="w-100" />
+                                <RadzenRequiredValidator Component="Password"
+                                                         Text="La contraseña es requerida" />
+                                <RadzenLengthValidator Component="Password" Min="8"
+                                                       Text="La contraseña debe tener al menos 8 caracteres" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenFormField Text="Confirmar Contraseña" Variant="Variant.Filled" Required="true">
+                                <RadzenPassword @bind-Value="confirmPassword"
+                                                Name="ConfirmPassword"
+                                                Class="w-100" />
+                                <RadzenRequiredValidator Component="ConfirmPassword"
+                                                         Text="Confirmar contraseña es requerido" />
+                                <RadzenCompareValidator Component="ConfirmPassword"
+                                                        Value="@registrationModel.Password"
+                                                        Text="Las contraseñas no coinciden" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+
+                <!-- Método de Pago -->
+                <RadzenCard>
+                    <RadzenText TextStyle="TextStyle.H6" Class="rz-mb-3">
+                        <RadzenIcon Icon="payment" Class="rz-mr-2" />
+                        Método de Pago
+                    </RadzenText>
+
+                    <RadzenRow RowGap="1rem">
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenFormField Text="Método de Pago" Variant="Variant.Filled" Required="true">
+                                <RadzenDropDown @bind-Value="registrationModel.PaymentMethod"
+                                                Data="@(new[] { "Tarjeta de Crédito", "Transferencia Bancaria", "PayPal" })"
+                                                Name="PaymentMethod"
+                                                Class="w-100" />
+                                <RadzenRequiredValidator Component="PaymentMethod"
+                                                         Text="Seleccione un método de pago" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenFormField Text="ID de Transacción" Variant="Variant.Filled">
+                                <RadzenTextBox @bind-Value="registrationModel.TransactionId"
+                                               Name="TransactionId"
+                                               Class="w-100" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+
+                <!-- Botones de Acción -->
+                <RadzenStack Orientation="Orientation.Horizontal"
+                             JustifyContent="JustifyContent.Center"
+                             Gap="1rem">
+                    <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                  Text="Cancelar"
+                                  Click="@(() => NavigationManager.NavigateTo("/"))" />
+                    <RadzenButton ButtonType="ButtonType.Submit"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Text="Registrar Tenant"
+                                  IsBusy="@isSubmitting"
+                                  BusyText="Registrando..." />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenTemplateForm>
+    }
+    else
+    {
+        <!-- Selección de Plan -->
         <RadzenRow>
             @foreach (var plan in subscriptionPlans)
             {
-                <RadzenColumn Size="12" SizeMD="3">
+                <RadzenColumn Size="12" SizeMD="4">
                     <RadzenCard Style="height: 100%;">
                         <RadzenStack Gap="1rem">
                             <RadzenText TextStyle="TextStyle.H5">@plan.Name</RadzenText>
@@ -39,94 +218,15 @@
                             </RadzenStack>
 
                             <RadzenButton ButtonStyle="ButtonStyle.Primary"
-                            Click="@(() => SelectPlan(plan))"
-                            Text="Seleccionar Plan"
-                            Class="w-100" />
+                                          Click="@(() => SelectPlan(plan))"
+                                          Text="Seleccionar Plan"
+                                          Class="w-100" />
                         </RadzenStack>
                     </RadzenCard>
                 </RadzenColumn>
             }
         </RadzenRow>
     }
-
-    @if (showRegistrationForm)
-    {
-        <RadzenTemplateForm TItem="RegisterTenantWithSubscriptionDto"
-        Data="@registrationModel"
-        Submit="@HandleSubmit">
-            <!-- Formulario de registro similar al existente -->
-        </RadzenTemplateForm>
-    }
 </RadzenStack>
 
-@code {
-    [Inject] private ApiClient ApiClient { get; set; } = default!;
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-    [Inject] private NotificationService NotificationService { get; set; } = default!;
-    [Inject] private IToastService ToastService { get; set; } = default!;
-    private List<SubscriptionTypeModel>? subscriptionPlans;
-    private bool showRegistrationForm;
-    private RegisterTenantWithSubscriptionDto registrationModel = new();
-    private SubscriptionTypeModel? selectedPlan;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadSubscriptionPlans();
-    }
-
-    private async Task LoadSubscriptionPlans()
-    {
-        var response = await ApiClient.GetFromJsonAsync<BaseResponseModel>("api/subscription/plans");
-        if (response?.Success == true)
-        {
-            subscriptionPlans = Newtonsoft.Json.JsonConvert.DeserializeObject<List<SubscriptionTypeModel>>(
-                response.Data.ToString()!);
-        }
-    }
-
-    private List<string> GetFeatures(SubscriptionTypeModel plan)
-    {
-        var features = JsonSerializer.Deserialize<Dictionary<string, object>>(plan.Features);
-        var featureList = new List<string>();
-
-        if (features != null)
-        {
-            featureList.Add($"Hasta {features["users"]} usuarios");
-            featureList.Add($"{features["customers"]} clientes");
-            if ((bool)features["support"])
-                featureList.Add("Soporte prioritario");
-        }
-
-        return featureList;
-    }
-
-    private void SelectPlan(SubscriptionTypeModel plan)
-    {
-        selectedPlan = plan;
-        registrationModel.SubscriptionTypeId = plan.ID;
-        showRegistrationForm = true;
-    }
-
-    private async Task HandleSubmit()
-    {
-        try
-        {
-            var response = await ApiClient.PostAsync<BaseResponseModel, RegisterTenantWithSubscriptionDto>(
-                "api/subscription/register", registrationModel);
-
-            if (response?.Success == true)
-            {
-                ToastService.ShowSuccess("Registro exitoso");
-                NavigationManager.NavigateTo("/login");
-            }
-            else
-            {
-                ToastService.ShowError(response?.ErrorMessage ?? "Error en el registro");
-            }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError("Error procesando el registro");
-        }
-    }
-}
+<RadzenNotification />

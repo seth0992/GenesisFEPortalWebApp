@@ -114,8 +114,11 @@ builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<ISecretService, SecretService>();
 
 builder.Services.AddScoped<ISecretRepository, SecretRepository>();
-//builder.Services.AddScoped<MultiTenantAuthenticationHandler>();
+
+
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+
 
 // Registrar el manejador de eventos personalizado
 builder.Services.AddScoped<TenantJwtBearerEvents>();

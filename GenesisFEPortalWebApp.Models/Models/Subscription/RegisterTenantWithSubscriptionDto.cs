@@ -9,7 +9,8 @@ namespace GenesisFEPortalWebApp.Models.Models.Subscription
     public class RegisterTenantWithSubscriptionDto
     {
         public string CompanyName { get; set; } = null!;
-        public string Identification { get; set; } = null!;
+        public string Identification { get; set; } = null!;  
+        public string IdentificationTypeId { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string FirstName { get; set; } = null!;
         public string LastName { get; set; } = null!;
