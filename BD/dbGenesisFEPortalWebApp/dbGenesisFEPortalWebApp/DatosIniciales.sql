@@ -26,7 +26,7 @@ SELECT
     'admin@system.com',
     'admin',
     -- Password: Admin123!
-    'AQAAAAIAAYagAAAAELpUWqz5rzxPDhVol3C4pz4tVEI1cxrNHXcYyHxD7GIX8zfDYc48f7I9mCzH5LvS8Q==',
+    '$2a$11$XEyJPaiE7dT2u3UnS4MGOOyXeH4.bosU3k/nJ9.TgJBWoCJh7w6ge',
     'Admin',
     'System',
     r.ID,
@@ -37,6 +37,8 @@ CROSS JOIN Security.Roles r
 WHERE t.Name = 'Sistema'
 AND r.Name = 'SuperAdmin';
 GO
+
+
 -- Roles
 
 -- Insertar roles básicos del sistema
